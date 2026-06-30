@@ -3,6 +3,8 @@ from hece.hypothesis import HypothesisEngine
 from hece.interpreter import GoalInterpreter
 from hece.knowledge import KnowledgeEngine
 from hece.constraints import ConstraintEngine
+from hece.simulation import SimulationEngine
+
 
 def run_hece(goal_description: str):
     print("\n🧠 HECE ENGINE INITIALIZED")
@@ -84,8 +86,22 @@ def run_hece(goal_description: str):
             for ev in hyp.supporting_evidence:
                 print(f"  - {ev.description} (Source: {ev.source}, Reliability: {ev.reliability})")
 
+
+    # --- SPRINT 5: SIMULATION ENGINE ---
+    print("\n🔬 Status: Running Hypothesis Evaluation & Simulation...")
+    simulation_engine = SimulationEngine()
+    evaluated_hypotheses = simulation_engine.evaluate(hypotheses, boundaries)
+    
+    print("\n[+] EVALUATION RESULTS:")
+    for i, hyp in enumerate(evaluated_hypotheses, 1):
+        # Cor de destaque baseada no status
+        status_icon = "🟢" if hyp.status == "active" else "🟡" if hyp.status == "speculative" else "🔴"
+        
+        print(f"    {status_icon} Hypothesis {i} -> New Status: [{hyp.status.upper()}]")
+        print(f"       Final Feasibility: {hyp.feasibility_score * 100}%")
+
     print("\n==========================================")
-    print(" 🛠️ Next step: SIMULATION ENGINE (Sprint 5)")
+    print(" 📑 Next step: SCIENTIFIC REPORT GENERATOR (Sprint 6)")
     print("==========================================\n")
 
 if __name__ == "__main__":
