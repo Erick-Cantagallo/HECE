@@ -4,6 +4,7 @@ from hece.interpreter import GoalInterpreter
 from hece.knowledge import KnowledgeEngine
 from hece.constraints import ConstraintEngine
 from hece.simulation import SimulationEngine
+from hece.report import ReportGenerator
 
 
 def run_hece(goal_description: str):
@@ -94,14 +95,23 @@ def run_hece(goal_description: str):
     
     print("\n[+] EVALUATION RESULTS:")
     for i, hyp in enumerate(evaluated_hypotheses, 1):
-        # Cor de destaque baseada no status
         status_icon = "🟢" if hyp.status == "active" else "🟡" if hyp.status == "speculative" else "🔴"
-        
+        # .0f format stops floating point errors (e.g., 55.000000001%)
         print(f"    {status_icon} Hypothesis {i} -> New Status: [{hyp.status.upper()}]")
-        print(f"       Final Feasibility: {hyp.feasibility_score * 100}%")
+        print(f"       Final Feasibility: {hyp.feasibility_score * 100:.0f}%")
+
+
+    # --- SPRINT 6: REPORT GENERATOR ---
+    print("\n📑 Status: Compiling Final Scientific Report...")
+    report_engine = ReportGenerator()
+    final_report = report_engine.generate_report(analysis, context, boundaries, evaluated_hypotheses)
+    
+    # Save to the physical "reports/" folder
+    saved_path = report_engine.export_to_markdown(final_report)
+    print(f"\n[+] SUCCESS! Report saved to: {saved_path}")
 
     print("\n==========================================")
-    print(" 📑 Next step: SCIENTIFIC REPORT GENERATOR (Sprint 6)")
+    print(" 🏁 HECE PIPELINE COMPLETED SUCCESSFULLY")
     print("==========================================\n")
 
 if __name__ == "__main__":
