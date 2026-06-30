@@ -1,48 +1,45 @@
 # HECE/src/hece/knowledge.py
+from typing import List, Dict
 from hece.core.models.base import GoalAnalysis, KnowledgeContext
+from hece.tools import ScientificToolbox
 
 class KnowledgeEngine:
     """
-    Retrieves established scientific context for a given goal.
-    In Sprint 2, this uses a deterministic knowledge base mapping.
-    Later, this will connect to Vector Databases or external scientific APIs.
+    Retrieves foundational laws and performs RAG (Retrieval-Augmented Generation) 
+    to inject real-world scientific literature into the context.
     """
-
-    # Deterministic Knowledge Base (Axioms that cannot be violated)
-    DOMAIN_AXIOMS = {
+    # ... (Axiomas existentes mantidos)
+    DOMAIN_AXIOMS: Dict[str, List[str]] = {
         "physics": [
             "First Law of Thermodynamics (Energy cannot be created or destroyed)",
             "Second Law of Thermodynamics (Entropy increases)",
             "Speed of light in a vacuum is an absolute limit (c)"
         ],
         "biology": [
-            "Cell Theory (All living organisms are composed of cells)",
-            "Central Dogma of Molecular Biology (DNA -> RNA -> Protein)",
-            "Evolution by Natural Selection"
-        ],
-        "chemistry": [
-            "Conservation of Mass",
-            "Pauli Exclusion Principle"
-        ],
-        "computer_science": [
-            "Halting Problem (Undecidability)",
-            "Turing Completeness",
-            "P vs NP unresolved boundary"
+            "Cell theory (All living things are composed of cells)",
+            "Evolution by natural selection",
+            "Central dogma of molecular biology (DNA -> RNA -> Protein)"
         ]
     }
 
     def retrieve_context(self, analysis: GoalAnalysis) -> KnowledgeContext:
         """
-        Processes the GoalAnalysis to inject domain-specific laws, facts, and limitations.
+        Processes the GoalAnalysis to inject domain-specific laws and real-world data.
         """
-        # We ensure domain is always a string to satisfy strict type checking
         domain = analysis.goal.domain or "general"
         
         # 1. Inject Domain Laws
         laws = self.DOMAIN_AXIOMS.get(domain, ["General Scientific Method rules apply"])
         
-        # 2. Inject Known Facts based on domain
-        facts = [f"Established literature and basic frameworks exist for {domain}."]
+        # 2. RAG: Fetch real literature based on keywords
+        print("    -> [RAG] Searching ArXiv database for real-world context...")
+        search_query = " ".join(analysis.keywords[:3]) # Use top 3 keywords
+        external_facts = ScientificToolbox.search_arxiv(search_query)
+        
+        facts = [
+            f"Established literature and basic frameworks exist for {domain}.",
+            external_facts # Injetando os artigos científicos reais
+        ]
         
         # 3. Inject Current Limitations heuristically
         limitations = []

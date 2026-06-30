@@ -11,5 +11,6 @@
 - Replaced linear mock hypothesis generation with a multi-agent consensus workflow.
 - Added a robust JSON extraction layer to handle conversational filler from local LLMs.
 
-## [Planned] Sprint 8: External Integration (RAG)
-- Adding tools for the Orquestrator to search and retrieve real-world scientific data.
+## [Done] Sprint 8: External Integration (RAG)
+- Created `ScientificToolbox` using the `arxiv` API.
+- Upgraded `KnowledgeEngine` to autonomously search and inject real-world paper summaries into the AI's context.
