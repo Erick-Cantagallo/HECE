@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.0] - 2026-06-30
+### Added
+- **Retrieval-Augmented Generation (RAG):** Integrated `arxiv` library into `tools.py` to fetch real-world scientific literature.
+- **Dynamic Context:** `KnowledgeEngine` now performs live literature reviews based on user goal keywords.
+
 ## [0.1.1] - 2026-06-30
 ### Added
 - **Multi-Agent Orchestration:** Introduced `AgentPool` (`agents.py`) featuring an Expert (proposer), Critic (reviewer), and Synthesizer (formatter) to generate hypotheses.
