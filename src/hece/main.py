@@ -1,4 +1,5 @@
 # HECE/src/hece/main.py
+from hece.hypothesis import HypothesisEngine
 from hece.interpreter import GoalInterpreter
 from hece.knowledge import KnowledgeEngine
 from hece.constraints import ConstraintEngine
@@ -7,7 +8,8 @@ def run_hece(goal_description: str):
     print("\n🧠 HECE ENGINE INITIALIZED")
     print("--------------------------")
     print("🔍 Status: Interpreting user goal...")
-    
+
+
     # --- SPRINT 1: GOAL INTERPRETER ---
     interpreter = GoalInterpreter()
     analysis = interpreter.analyze(goal_description)
@@ -24,7 +26,8 @@ def run_hece(goal_description: str):
             print(f"    - [{constraint.type}] {constraint.description} (Strictness: {constraint.strictness}/10)")
     else:
         print("\n[-] No initial constraints detected.")
-        
+
+
     # --- SPRINT 2: KNOWLEDGE ENGINE ---
     print("\n📚 Status: Retrieving Scientific Context...")
     knowledge_engine = KnowledgeEngine()
@@ -38,6 +41,7 @@ def run_hece(goal_description: str):
         print("\n[!] Known Scientific Limitations:")
         for limitation in context.current_limitations:
             print(f"    - {limitation}")
+
 
     # --- SPRINT 3: CONSTRAINT ENGINE ---
     print("\n🚧 Status: Establishing Scientific Boundaries...")
@@ -57,8 +61,31 @@ def run_hece(goal_description: str):
     for crit in boundaries.evaluation_criteria:
         print(f"    ✅ {crit}")
 
+
+    # --- SPRINT 4: HYPOTHESIS ENGINE ---
+    print("\n💡 Status: Generating Scientific Hypotheses...")
+    hypothesis_engine = HypothesisEngine()
+    hypotheses = hypothesis_engine.generate_hypotheses(analysis, context, boundaries)
+    
+    print(f"\n[+] Generated {len(hypotheses)} Hypothesis/Hypotheses:")
+    for i, hyp in enumerate(hypotheses, 1):
+        print(f"\n--- HYPOTHESIS {i} [{hyp.status.upper()}] ---")
+        print(f"ID: {hyp.id}")
+        print(f"Description: {hyp.description}")
+        print(f"Feasibility: {hyp.feasibility_score * 100}% | Confidence: {hyp.confidence * 100}%")
+        
+        if hyp.assumptions:
+            print("Key Assumptions:")
+            for assumption in hyp.assumptions:
+                print(f"  - {assumption}")
+                
+        if hyp.supporting_evidence:
+            print("Supporting Evidence:")
+            for ev in hyp.supporting_evidence:
+                print(f"  - {ev.description} (Source: {ev.source}, Reliability: {ev.reliability})")
+
     print("\n==========================================")
-    print(" 🛠️ Next step: AI HYPOTHESIS ENGINE (Sprint 4)")
+    print(" 🛠️ Next step: SIMULATION ENGINE (Sprint 5)")
     print("==========================================\n")
 
 if __name__ == "__main__":
