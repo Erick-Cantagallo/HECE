@@ -1,60 +1,68 @@
 # HECE/src/hece/hypothesis.py
 import uuid
+import json
+import os
 from typing import List
 from hece.core.models.base import GoalAnalysis, KnowledgeContext, ConstraintContext, Hypothesis, Evidence
+from hece.inference import InferenceEngine
 
 class HypothesisEngine:
     """
-    Generates structured scientific hypotheses within the strict boundaries 
-    defined by the Constraint Engine.
+    Generates structured scientific hypotheses using local LLM inference.
     """
 
+    def __init__(self):
+        # Initialize inference engine with config from .env
+        model = os.getenv("MODEL_NAME", "llama3")
+        self.inference = InferenceEngine(model_name=model)
+
     def _build_system_prompt(self, analysis: GoalAnalysis, knowledge: KnowledgeContext, constraints: ConstraintContext) -> str:
-        """
-        Constructs the highly restrictive prompt that will eventually be sent to an LLM.
-        """
-        prompt = f"""
-        You are HECE, a strict scientific reasoning engine.
-        GOAL: {analysis.goal.description}
-        DOMAIN: {analysis.goal.domain}
+            prompt = f"""
+            You are HECE, a strict scientific reasoning engine.
+            GOAL: {analysis.goal.description}
+            DOMAIN: {analysis.goal.domain}
 
-        ABSOLUTE HARD CONSTRAINTS (DO NOT VIOLATE):
-        {chr(10).join(constraints.hard_constraints)}
+            ABSOLUTE HARD CONSTRAINTS (DO NOT VIOLATE):
+            {chr(10).join(constraints.hard_constraints)}
 
-        EVALUATION CRITERIA:
-        {chr(10).join(constraints.evaluation_criteria)}
+            EVALUATION CRITERIA:
+            {chr(10).join(constraints.evaluation_criteria)}
 
-        Generate a hypothesis structured as a JSON object matching our schema.
-        """
-        return prompt
+            Respond in JSON format ONLY. 
+            Example: {{"description": "text", "assumptions": ["a", "b"], "required_conditions": ["c"], "feasibility_score": 0.5}}
+            """
+            return prompt
 
     def generate_hypotheses(self, analysis: GoalAnalysis, knowledge: KnowledgeContext, constraints: ConstraintContext) -> List[Hypothesis]:
-        """
-        Main entry point. Currently returns a deterministic structural mock 
-        to validate the pipeline architecture before LLM integration.
-        """
-        # 1. We generate the prompt (Stored in memory for future API call)
-        _system_prompt = self._build_system_prompt(analysis, knowledge, constraints)
-
-        # 2. Mocking the structured output of an LLM for Sprint 4 baseline
-        mock_evidence_1 = Evidence(
-            id=str(uuid.uuid4()),
-            description="Holographic Principle theories relating boundary thermodynamics to bulk geometry.",
-            source="Theoretical Physics Literature",
-            reliability=0.7
-        )
-
-        mock_hypothesis = Hypothesis(
-            id=str(uuid.uuid4()),
-            goal_id=analysis.goal.id,
-            description="Simulate quantum gravity as an emergent thermodynamic phenomenon on a lower-dimensional boundary space, bypassing the need for string-like fundamental structures.",
-            assumptions=["Spacetime is fundamentally discrete", "Information is conserved on boundaries"],
-            required_conditions=["High-performance tensor network computational models"],
-            supporting_evidence=[mock_evidence_1],
-            conflicting_evidence=[],
-            feasibility_score=0.4,
-            confidence=0.5,
-            status="speculative"
-        )
-
-        return [mock_hypothesis]
+            """
+            Uses local inference to generate a hypothesis, with strict JSON enforcement.
+            """
+            prompt = self._build_system_prompt(analysis, knowledge, constraints)
+            
+            # Add explicit instruction for the LLM to prevent conversational filler
+            prompt += "\n\nIMPORTANT: Return ONLY the raw JSON object. Do not include any explanations, greetings, or markdown code blocks (```json). Start directly with '{' and end with '}'."
+            
+            response_text = self.inference.ask(prompt)
+            
+            try:
+                # Clean markdown if present, despite the instructions
+                clean_json = response_text.replace("```json", "").replace("```", "").strip()
+                data = json.loads(clean_json)
+                
+                hypothesis = Hypothesis(
+                    id=str(uuid.uuid4()),
+                    goal_id=analysis.goal.id,
+                    description=data.get("description", "No description provided."),
+                    assumptions=data.get("assumptions", []),
+                    required_conditions=data.get("required_conditions", []),
+                    feasibility_score=float(data.get("feasibility_score", 0.5)),
+                    confidence=0.5,
+                    status="speculative"
+                )
+                return [hypothesis]
+                
+            except Exception as e:
+                # DEBUG: If parsing fails, print the raw output so we can see what the model actually said
+                print(f"\n[DEBUG] LLM raw response that failed to parse: {response_text}")
+                print(f"[ERROR] JSON parsing error: {e}")
+                return []

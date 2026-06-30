@@ -5,6 +5,9 @@ from hece.knowledge import KnowledgeEngine
 from hece.constraints import ConstraintEngine
 from hece.simulation import SimulationEngine
 from hece.report import ReportGenerator
+from dotenv import load_dotenv
+load_dotenv()
+import os
 
 
 def run_hece(goal_description: str):
