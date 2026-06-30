@@ -1,8 +1,7 @@
 # HECE/src/hece/main.py
 from hece.interpreter import GoalInterpreter
-
-from hece.interpreter import GoalInterpreter
 from hece.knowledge import KnowledgeEngine
+from hece.constraints import ConstraintEngine
 
 def run_hece(goal_description: str):
     print("\n🧠 HECE ENGINE INITIALIZED")
@@ -40,8 +39,27 @@ def run_hece(goal_description: str):
         for limitation in context.current_limitations:
             print(f"    - {limitation}")
 
-    print("\n⚙️ Next step: Constraint Engine not implemented yet")
-    print("--------------------------\n")
+    # --- SPRINT 3: CONSTRAINT ENGINE ---
+    print("\n🚧 Status: Establishing Scientific Boundaries...")
+    constraint_engine = ConstraintEngine()
+    boundaries = constraint_engine.process_constraints(analysis, context)
+    
+    print("\n[+] HARD CONSTRAINTS (Absolute Rules):")
+    for hc in boundaries.hard_constraints:
+        print(f"    ❌ {hc}")
+        
+    if boundaries.soft_constraints:
+        print("\n[+] SOFT CONSTRAINTS (Preferences):")
+        for sc in boundaries.soft_constraints:
+            print(f"    ⚠️ {sc}")
+            
+    print("\n[+] EVALUATION CRITERIA (Success Metrics):")
+    for crit in boundaries.evaluation_criteria:
+        print(f"    ✅ {crit}")
+
+    print("\n==========================================")
+    print(" 🛠️ Next step: AI HYPOTHESIS ENGINE (Sprint 4)")
+    print("==========================================\n")
 
 if __name__ == "__main__":
     print("\n=== HECE - Hypothesis & Creativity Engine ===")

@@ -99,3 +99,17 @@ class KnowledgeContext(BaseModel):
     domain_laws: List[str] = []
     known_facts: List[str] = []
     current_limitations: List[str] = []
+
+
+# ---------------------------
+# CONSTRAINT CONTEXT (Constraint Engine Output)
+# ---------------------------
+class ConstraintContext(BaseModel):
+    """
+    Consolidates user-defined constraints and scientific laws into strict 
+    boundaries for the Hypothesis Engine.
+    """
+    goal_id: str
+    hard_constraints: List[str] = []      # Cannot be violated (e.g., Laws of Physics)
+    soft_constraints: List[str] = []      # Preferred conditions (if feasible)
+    evaluation_criteria: List[str] = []   # Metrics to evaluate the future hypothesis
