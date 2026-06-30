@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "If you use HECE in your research, please cite it as below."
+authors:
+  - family-names: "Cantagallo"
+    given-names: "Erick"
+title: "HECE: Hypothesis & Creativity Engine"
+version: 0.1.0
+date-released: 2026-06-30
