@@ -6,8 +6,10 @@
 ## [Done] Sprint 3-5: Engine Core
 - Knowledge, Constraint, Hypothesis, and Simulation engines implemented.
 
-## [Planned] Sprint 7: Agentic Orchestration
-- Implementing multiple specialized agents for reasoning.
+## [Done] Sprint 7: Agentic Orchestration
+- Implemented `AgentPool` with specialized roles (Expert, Critic, Synthesizer).
+- Replaced linear mock hypothesis generation with a multi-agent consensus workflow.
+- Added a robust JSON extraction layer to handle conversational filler from local LLMs.
 
-## [Planned] Sprint 8: External Integration
-- Adding web search tools for real-time evidence retrieval.
+## [Planned] Sprint 8: External Integration (RAG)
+- Adding tools for the Orquestrator to search and retrieve real-world scientific data.
