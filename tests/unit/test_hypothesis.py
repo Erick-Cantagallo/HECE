@@ -11,8 +11,7 @@ def test_generate_hypotheses():
     
     hypotheses = engine.generate_hypotheses(analysis, knowledge, constraints)
     
-    # Assertions to guarantee structural integrity (Updated for V1.0)
+    # Assertions to guarantee structural integrity (Legacy Engine)
     assert len(hypotheses) == 1
     assert hypotheses[0].status == "speculative"
-    assert len(hypotheses[0].assumptions) > 0
-    # The outdated supporting_evidence assertion was removed since we use 'citations' now.
+    assert hypotheses[0].goal_id == "test"

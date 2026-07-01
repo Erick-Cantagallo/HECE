@@ -4,43 +4,37 @@ from hece.core.models.base import Hypothesis, ConstraintContext
 
 class SimulationEngine:
     """
-    Evaluates hypotheses against scientific constraints and evidence.
-    Adjusts feasibility scores and confidence levels deterministically.
+    Evaluates hypotheses using a strict, deterministic mathematical model.
+    It does NOT rely on AI for the final score, but computes penalties 
+    based on the length of flaw arrays extracted during synthesis.
     """
     
-    def evaluate(self, hypotheses: List[Hypothesis], constraints: ConstraintContext) -> List[Hypothesis]:
-        """
-        Runs a heuristic evaluation (mock simulation) over the hypotheses.
-        """
-        evaluated_hypotheses = []
-        
+    def evaluate(self, hypotheses: List[Hypothesis], boundaries: ConstraintContext) -> List[Hypothesis]:
         for hyp in hypotheses:
-            score_modifier = 0.0
+            base_score = 1.0 # Starts at 100% viability
             
-            # 1. Reward strong supporting evidence
-            if hyp.supporting_evidence:
-                score_modifier += 0.15 * len(hyp.supporting_evidence)
+            # 1. Fatal Physics/Constraint Violations (-40% each)
+            if hyp.violated_hard_constraints:
+                base_score -= 0.40 * len(hyp.violated_hard_constraints)
                 
-            # 2. Penalize lack of strict required conditions
-            if not hyp.required_conditions:
-                score_modifier -= 0.2
+            # 2. Logical Flaws identified by the Critic (-15% each)
+            if hyp.logical_flaws:
+                base_score -= 0.15 * len(hyp.logical_flaws)
                 
-            # 3. Penalize conflicting evidence
-            if hyp.conflicting_evidence:
-                score_modifier -= 0.3 * len(hyp.conflicting_evidence)
+            # 3. Speculative Assumptions (-5% each)
+            if hyp.assumptions:
+                base_score -= 0.05 * len(hyp.assumptions)
                 
-            # Recalculate feasibility (capped between 0.0 and 1.0)
-            new_feasibility = min(max(hyp.feasibility_score + score_modifier, 0.0), 1.0)
-            hyp.feasibility_score = round(new_feasibility, 2)
+            # Mathematical clamping to keep it strictly between 0.0 and 1.0
+            # FIX: Added round(..., 2) to eliminate floating point precision anomalies
+            hyp.feasibility_score = round(max(0.0, min(1.0, base_score)), 2)
             
-            # Update status based on strict thresholds
-            if hyp.feasibility_score >= 0.6:
+            # Status Deterministic Assignment
+            if hyp.feasibility_score >= 0.70:
                 hyp.status = "active"
-            elif hyp.feasibility_score < 0.3:
-                hyp.status = "rejected"
-            else:
+            elif hyp.feasibility_score >= 0.40:
                 hyp.status = "speculative"
+            else:
+                hyp.status = "rejected"
                 
-            evaluated_hypotheses.append(hyp)
-            
-        return evaluated_hypotheses
+        return hypotheses

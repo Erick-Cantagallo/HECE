@@ -2,9 +2,24 @@
 import os
 import json
 import uuid
-from typing import List
+from typing import List, Any
 from hece.inference import InferenceEngine
 from hece.core.models.base import Hypothesis, GoalAnalysis, KnowledgeContext, ConstraintContext
+
+def _ensure_list(value: Any) -> List[str]:
+    """Ensures that the LLM output is always a list of strings, preventing Pydantic ValidationErrors."""
+    if isinstance(value, list):
+        raw_list = [str(v) for v in value]
+    elif isinstance(value, str):
+        raw_list = [value]
+    else:
+        raw_list = []
+        
+    # FIX: The "None" Trap. Ignore strings where the AI conversationalizes an empty response.
+    ignore_words = ["none", "none.", "n/a", "nil", "nothing", "empty", "no", "false"]
+    clean_list = [item for item in raw_list if item.strip().lower() not in ignore_words]
+    
+    return clean_list
 
 class Agent:
     def __init__(self, name: str, role_description: str):
@@ -24,13 +39,11 @@ class Agent:
         """
         return self.inference.ask(prompt)
 
-
 class AgentPool:
     def __init__(self):
         self.expert = Agent("ScientificExpert", "You are an expert in the user's specific scientific domain. You provide rigorous, speculative hypotheses.")
         self.critic = Agent("ScientificCritic", "You are a harsh scientific critic. You challenge hypotheses for logical flaws and constraint violations.")
         self.synthesizer = Agent("Synthesizer", "You are a scientific writer. You combine expert insights and criticism into a final, structured summary.")
-
 
 class InvestigationOrchestrator:
     """
@@ -42,7 +55,7 @@ class InvestigationOrchestrator:
 
     def investigate(self, analysis: GoalAnalysis, context: KnowledgeContext, boundaries: ConstraintContext, target_count: int = 2) -> List[Hypothesis]:
         hypotheses = []
-        generated_ideas = []  # To prevent the LLM from repeating the same theory
+        generated_ideas = []  
         
         for i in range(target_count):
             print(f"\n   [Iteration {i+1}]")
@@ -77,26 +90,27 @@ class InvestigationOrchestrator:
                 Critic's Review: {critique}
                 
                 TASK: Write the FINAL, improved scientific hypothesis. 
-                Provide a deep, mathematically rigorous formulation. Detail the logical steps, 
-                theoretical mechanics, and explicit mathematical equations.
+                1. EXTREME DETAIL: You MUST write a comprehensive, deep thesis (at least 4 to 5 long paragraphs, 500+ words). Explain exactly HOW the mechanism works, WHY it is viable, and detail the step-by-step implementation.
+                2. MATH FORMATTING: Provide explicit mathematical formulas using PLAIN TEXT ASCII ONLY (e.g., 'Force = mass * acceleration', 'A / B', 'd/dx'). DO NOT USE LATEX.
                 """
                 
                 json_format = f"""
                 CRITICAL INSTRUCTION: You are a strict data output API. You MUST return ONLY a valid JSON object.
                 
                 JSON RULES TO PREVENT PARSING CRASHES:
-                1. ALL keys MUST be enclosed in double quotes (e.g., "description").
-                2. DO NOT use raw newlines (Enter key) inside strings. Use the literal characters '\\n' for paragraphs.
+                1. ALL keys MUST be enclosed in double quotes.
+                2. DO NOT use raw newlines. Use the literal characters '\\n' for paragraphs.
                 3. DO NOT use unescaped double quotes inside strings. Use single quotes (') instead.
-                4. DO NOT use backslashes (\\) for LaTeX math. Write math in plain text (e.g., write 'Delta' instead of '\\Delta').
+                4. ABSOLUTELY NO LATEX. DO NOT use backslashes (\\) or dollar signs ($) anywhere.
                 
                 JSON SCHEMA REQUIRED:
                 {{
-                    "description": "Write a massive, detailed scientific thesis here. Use '\\n' for newlines. Use single quotes for emphasis.",
-                    "assumptions": ["str"],
-                    "required_conditions": ["str"],
-                    "citations": ["str"],
-                    "feasibility_score": 0.5
+                    "description": "Write a massive, highly detailed scientific thesis here (500+ words). Use '\\n' for newlines. Explain the 'how' and 'why' extensively.",
+                    "assumptions": ["List EVERY single unproven assumption here. DO NOT hide them in the text."],
+                    "required_conditions": ["list of required conditions"],
+                    "violated_hard_constraints": ["List EVERY absolute physics law broken (e.g., negative mass, faster-than-light). BE BRUTALLY HONEST. Do not ignore the Critic's warnings."],
+                    "logical_flaws": ["List EVERY contradiction found by the Critic. DO NOT hide them."],
+                    "citations": ["list of citations"]
                 }}
                 {error_feedback}
                 """
@@ -114,29 +128,27 @@ class InvestigationOrchestrator:
                         try:
                             data = json.loads(clean_json, strict=False)
                         except json.JSONDecodeError:
+                            # Auto-clean common LLM formatting errors
                             clean_json = clean_json.replace('\\', '\\\\').replace('\n', ' ')
                             data = json.loads(clean_json, strict=False)
-                        
-                        raw_score = float(data.get("feasibility_score", 0.5))
-                        if raw_score > 1.0:
-                            raw_score = raw_score / 10.0 if raw_score <= 10.0 else raw_score / 100.0
-                        raw_score = min(max(raw_score, 0.0), 1.0) 
                         
                         agent_hypothesis = Hypothesis(
                             id=str(uuid.uuid4()),
                             goal_id=analysis.goal.id,
                             description=data.get("description", "No description provided."),
-                            assumptions=data.get("assumptions", []),
-                            required_conditions=data.get("required_conditions", []),
-                            citations=data.get("citations", []),
-                            feasibility_score=raw_score,
+                            # The _ensure_list function completely shields Pydantic from LLM data type hallucinations
+                            assumptions=_ensure_list(data.get("assumptions", [])),
+                            required_conditions=_ensure_list(data.get("required_conditions", [])),
+                            violated_hard_constraints=_ensure_list(data.get("violated_hard_constraints", [])),
+                            logical_flaws=_ensure_list(data.get("logical_flaws", [])),
+                            citations=_ensure_list(data.get("citations", [])),
+                            feasibility_score=0.0, 
                             confidence=0.5,
                             status="speculative"
                         )
                         hypotheses.append(agent_hypothesis)
                         generated_ideas.append(agent_hypothesis.description[:100])
-                        success = True # Escapes the retry loop
-                        
+                        success = True 
                     else:
                         raise ValueError("The LLM did not return a valid JSON format with {} brackets.")
                         

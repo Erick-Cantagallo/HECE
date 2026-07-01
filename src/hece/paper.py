@@ -7,16 +7,25 @@ from typing import List
 
 def _sanitize_text(text: str) -> str:
     """
-    Strips highly problematic unicode but retains basic math symbols.
-    Uses latin-1 to safely render standard text and basic equations in FPDF.
+    Strips problematic characters entirely.
+    Removes rogue markdown (like **) and standardizes quotes.
+    Translates LaTeX remnants to readable plain text if the LLM rebels.
     """
     if not text:
         return ""
-    # Use latin-1 to allow basic symbols (+, -, =, etc) instead of pure ascii
-    safe = text.encode('latin-1', 'replace').decode('latin-1')
+    
+    # Remove markdown bolding and replace double quotes with single to avoid hanging quotes
+    safe = text.replace('**', '')
+    safe = safe.replace('"', "'")
+    
+    # Aggressive LaTeX and Math symbol cleaner for FPDF compatibility
+    safe = safe.replace('$', '')
+    safe = safe.replace('\\frac', ' / ')
+    safe = safe.replace('\\partial', 'd')
+    safe = safe.replace('\\', '') # Catch-all for remaining backslashes
+    
+    safe = safe.encode('latin-1', 'replace').decode('latin-1')
     safe = safe.replace('\t', '    ')
-    # Force FPDF to not panic on weird hidden characters
-    safe = safe.replace('?', '?') 
     return safe
 
 class ScientificPaper(FPDF):
@@ -42,32 +51,29 @@ class ScientificPaper(FPDF):
 
     def _indestructible_print(self, text: str):
         """
-        The ultimate safe print. Hardcodes width to ignore broken margin states,
+        Hardcodes width to ignore broken margin states,
         and forces cursor back to safety before drawing.
         """
-        self.set_x(10) # Slam cursor to the left margin
+        self.set_x(10)
         safe_text = _sanitize_text(text)
         
         try:
-            # A4 is 210mm wide. 210 - 20mm (10mm each side) = 190mm hardcoded width
-            # This completely ignores fpdf2's internal 'remaining space' bugs
             effective_width = self.w - 20 
             self.multi_cell(effective_width, 6, safe_text)
         except Exception:
-            # If the universe collapses, write a raw string
             self.set_x(10)
             self.write(6, "[PDF ENGINE ERROR: Omitted unrenderable text block]\n")
 
 class PaperGenerator:
     @staticmethod
-    def generate_pdf(analysis: GoalAnalysis, context: KnowledgeContext, boundaries: ConstraintContext, hypotheses: List[Hypothesis]) -> str:
+    def generate_pdf(project_name: str, analysis: GoalAnalysis, context: KnowledgeContext, boundaries: ConstraintContext, hypotheses: List[Hypothesis], deep_conclusion: str) -> str:
         pdf = ScientificPaper()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
 
         # 1. Title
         pdf.set_font("helvetica", "B", 18)
-        pdf._indestructible_print(f"Research Investigation:\n{analysis.goal.description}")
+        pdf._indestructible_print(f"Project: {project_name.upper()}\nInvestigation: {analysis.goal.description}")
         
         # 2. Abstract (RAG Context)
         pdf.chapter_title("1. Abstract & Real-World Literature")
@@ -76,12 +82,20 @@ class PaperGenerator:
         abstract_text += "\n".join(context.known_facts)
         pdf._indestructible_print(abstract_text)
 
-        # 3. Methodology (Constraints)
-        pdf.chapter_title("2. Methodology & Constraints")
+        # 3. Methodology & Metrics (NEW SECTION)
+        pdf.chapter_title("2. Methodology & Viability Metrics")
         pdf.set_font("helvetica", "", 11)
-        meth_text = "The generation of hypotheses was constrained by the following absolute laws:\n"
+        meth_text = "A. SCIENTIFIC BOUNDARIES (HARD CONSTRAINTS):\n"
         for hc in boundaries.hard_constraints:
             meth_text += f"- {hc}\n"
+            
+        meth_text += "\nB. VIABILITY SCORE CALCULATION:\n"
+        meth_text += "The Feasibility Score is calculated deterministically by the Python Simulation Engine, NOT by the AI. "
+        meth_text += "The base score starts at 100%. Mathematical penalties are applied based on flaws identified during the investigation:\n"
+        meth_text += "  [-] 40% penalty per Violated Hard Constraint (Physics/Thermodynamics laws broken).\n"
+        meth_text += "  [-] 15% penalty per Logical Flaw identified by the AI Critic.\n"
+        meth_text += "  [-] 5% penalty per Unproven Assumption required.\n\n"
+        meth_text += "Scores > 70% indicate high theoretical compatibility. Scores < 50% denote severe violations of known physics."
         pdf._indestructible_print(meth_text)
 
         # 4. Proposed Hypotheses
@@ -102,16 +116,17 @@ class PaperGenerator:
                     pdf._indestructible_print(f"  [+] {cit}")
             pdf.ln(4)
 
-        # 5. Conclusion
-        pdf.chapter_title("4. Conclusion")
+        # 5. Deep Conclusion (Dynamic LLM Text)
+        pdf.chapter_title("4. Conclusive Synthesis")
         pdf.set_font("helvetica", "", 11)
         active = sum(1 for h in hypotheses if h.status == 'active')
-        conclusion_text = f"The HECE pipeline evaluated {len(hypotheses)} hypotheses. {active} hypotheses passed the strict deterministic evaluation and are recommended for further human peer review."
-        pdf._indestructible_print(conclusion_text)
+        pdf._indestructible_print(f"PIPELINE SUMMARY: Evaluated {len(hypotheses)} hypotheses. {active} hypotheses passed strict deterministic evaluation.\n")
+        pdf._indestructible_print(f"DEEP ANALYSIS:\n{deep_conclusion}")
 
-        # Save PDF
+        # Save PDF with Custom Name
         os.makedirs("reports", exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        filename = f"reports/HECE_Paper_{timestamp}.pdf"
+        safe_filename = project_name.replace(' ', '_').replace('/', '_')
+        filename = f"reports/HECE_{safe_filename}_{timestamp}.pdf"
         pdf.output(filename)
         return filename

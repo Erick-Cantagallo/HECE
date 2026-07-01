@@ -18,10 +18,11 @@ def test_orchestrator_successful_parsing(mock_ask, mock_data):
     analysis, context, boundaries = mock_data
     
     # Simulate LLM outputs: 1st (Expert), 2nd (Critic), 3rd (Synthesizer valid JSON)
+    # Updated JSON mock to reflect the new deterministic schema (no feasibility_score)
     mock_ask.side_effect = [
         "Expert Hypothesis Mock",
         "Critic Review Mock",
-        '{"description": "Valid JSON output", "assumptions": [], "required_conditions": [], "citations": [], "feasibility_score": 0.85}'
+        '{"description": "Valid JSON output", "assumptions": ["Assumption 1"], "required_conditions": [], "violated_hard_constraints": [], "logical_flaws": [], "citations": []}'
     ]
     
     pool = AgentPool()
@@ -31,7 +32,9 @@ def test_orchestrator_successful_parsing(mock_ask, mock_data):
     # Assertions
     assert len(hypotheses) == 1
     assert hypotheses[0].description == "Valid JSON output"
-    assert hypotheses[0].feasibility_score == 0.85
+    assert len(hypotheses[0].assumptions) == 1
+    # Feasibility is hardcoded to 0.0 by the orchestrator until the SimulationEngine processes it
+    assert hypotheses[0].feasibility_score == 0.0
 
 @patch('hece.agents.InferenceEngine.ask')
 def test_orchestrator_auto_retry_failure(mock_ask, mock_data):
