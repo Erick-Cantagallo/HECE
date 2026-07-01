@@ -15,7 +15,16 @@
 - Created `ScientificToolbox` using the `arxiv` API.
 - Upgraded `KnowledgeEngine` to autonomously search and inject real-world paper summaries into the AI's context.
 
-## [Planned] Sprint 9: Multi-Hypothesis & Scientific Paper Generation
-- Refactor the Orchestrator to generate multiple, distinct hypotheses.
-- Implement a strict citation requirement, linking generated ideas to RAG (ArXiv) sources.
-- Create `paper.py` using `fpdf2` to automatically compile the entire investigation into a formatted PDF Scientific Paper.
+## [Done] Sprint 9: Multi-Hypothesis & Scientific Paper Generation
+- Refactored the Orchestrator to generate multiple, distinct hypotheses.
+- Implemented a strict citation requirement, linking generated ideas to RAG (ArXiv) sources.
+- Created `paper.py` using `fpdf2` to automatically compile the entire investigation into a formatted PDF Scientific Paper.
+
+## [Done] Sprint 10: Deterministic Math & Credibility
+- Replaced AI numeric guessing with Python deterministic deduction to prevent "innumeracy" flaws.
+- Documented calculation methodology explicitly in the final PDF.
+- Enforced deep paragraph generation and plain-text math rendering, along with LaTeX sanitization in FPDF2.
+
+## [Planned] Sprint 11: User Interface (UI/UX)
+- Option A: Streamlit Web UI for browser-based investigations.
+- Option B: Rich CLI Terminal Interface for a cyberpunk laboratory feel.

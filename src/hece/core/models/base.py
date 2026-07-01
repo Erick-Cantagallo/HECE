@@ -42,7 +42,12 @@ class Hypothesis(BaseModel):
 
     assumptions: List[str] = []
     required_conditions: List[str] = []
-    citations: List[str] = []  # <-- NEW FIELD ADDED FOR SPRINT 9
+    citations: List[str] = []
+    
+    # NEW FIELDS FOR DETERMINISTIC CALCULATION
+    violated_hard_constraints: List[str] = []
+    logical_flaws: List[str] = []
+
     supporting_evidence: List[Evidence] = []
     conflicting_evidence: List[Evidence] = []
 

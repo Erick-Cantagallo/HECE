@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.0-beta] - 2026-07-01
+### Added
+- Multi-Agent Auto-Retry mechanism for self-healing JSON parsing.
+- Deterministic `SimulationEngine` for math-based feasibility scoring without AI hallucinations.
+- Dynamic `Synthesizer` conclusion generation in PDF reports.
+- Advanced LaTeX and Markdown sanitizers in FPDF2 for graceful math rendering.
+
+### Changed
+- Replaced AI numeric guessing with Python deterministic deduction.
+- Enforced 500+ word count and ASCII math formatting on LLM Synthesis prompts.
+- Refactored `main.py` by abstracting agent orchestration into `agents.py`.
+
 ## [0.2.0] - 2026-06-30
 ### Added
 - **Retrieval-Augmented Generation (RAG):** Integrated `arxiv` library into `tools.py` to fetch real-world scientific literature.
