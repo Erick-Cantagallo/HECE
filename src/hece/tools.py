@@ -13,7 +13,6 @@ class ScientificToolbox:
         Returns a formatted string containing the titles and summaries.
         """
         try:
-            # Construct a basic client
             client = arxiv.Client()
             search = arxiv.Search(
                 query=query,
@@ -24,8 +23,8 @@ class ScientificToolbox:
             results_text = "REAL SCIENTIFIC LITERATURE RETRIEVED:\n"
             for paper in client.results(search):
                 results_text += f"\n- Title: {paper.title}\n"
-                # Limiting summary length to keep prompt size manageable
-                results_text += f"  Summary: {paper.summary[:300]}...\n"
+                # Removed the arbitrary 300 character limit. Now fetches full abstracts.
+                results_text += f"  Summary: {paper.summary}\n"
                 
             return results_text
         except Exception as e:
