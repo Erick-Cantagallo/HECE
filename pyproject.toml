@@ -38,9 +38,9 @@ dev = ["pytest>=8"]
 hece = "hece.main:main"
 
 [project.urls]
-Homepage = "https://github.com/Erick-Cantagallo/hece"
-Issues = "https://github.com/Erick-Cantagallo/hece/issues"
-Changelog = "https://github.com/Erick-Cantagallo/hece/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/Erick-Cantagallo/HECE"
+Issues = "https://github.com/Erick-Cantagallo/HECE/issues"
+Changelog = "https://github.com/Erick-Cantagallo/HECE/blob/main/CHANGELOG.md"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
