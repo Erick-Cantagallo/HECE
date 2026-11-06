@@ -4,7 +4,7 @@
 
 <br>
 
-[![CI](https://github.com/Erick-Cantagallo/hece/actions/workflows/ci.yml/badge.svg)](https://github.com/Erick-Cantagallo/hece/actions/workflows/ci.yml)
+[![CI](https://github.com/Erick-Cantagallo/HECE/actions/workflows/ci.yml/badge.svg)](https://github.com/Erick-Cantagallo/HECE/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![LLM](https://img.shields.io/badge/LLM-Ollama%20(local)-111827?logo=ollama&logoColor=white)
 ![Pydantic v2](https://img.shields.io/badge/pydantic-v2-E92063?logo=pydantic&logoColor=white)
@@ -149,7 +149,7 @@ nota = 1,00 − 0,40 × violações de restrições duras
 ollama pull llama3
 
 # 2) instale o HECE
-git clone https://github.com/Erick-Cantagallo/hece.git
+git clone https://github.com/Erick-Cantagallo/HECE.git
 cd hece
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
 pip install -e .
