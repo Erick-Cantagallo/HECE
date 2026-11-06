@@ -13,7 +13,7 @@
 - `hece` console command and `python -m hece`. `hece "<goal>" -p <project> -n <count>` runs without prompts; with no arguments the interactive prompts remain.
 - GitHub Actions CI (Python 3.10 to 3.13, plus the pinned requirements) and Dependabot.
 - Tests for the inference layer, the CLI, `MAX_RETRIES`, the "None trap" filter and an end-to-end pipeline run with the LLM, arXiv and PDF writer mocked (24 new tests, 40 in total).
-- Rewritten `README.md` (Portuguese, with an English summary), banner and architecture diagram.
+- Rewritten `README.md` (English, marked as under construction, with the vision in the project's own words and an honest list of what does not exist yet), a banner with an "under construction" label and an architecture diagram.
 
 ### Changed
 - `.env` is no longer tracked: copy `.env.example` to `.env` (git-ignored). After pulling this change, git removes your local `.env`; the defaults are the same, so nothing breaks.
