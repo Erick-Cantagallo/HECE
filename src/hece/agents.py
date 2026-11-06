@@ -21,6 +21,15 @@ def _ensure_list(value: Any) -> List[str]:
     
     return clean_list
 
+DEFAULT_MAX_RETRIES = 3
+
+def _max_retries() -> int:
+    """How many times the Synthesizer may retry malformed JSON (env MAX_RETRIES, default 3)."""
+    try:
+        return max(1, int(os.getenv("MAX_RETRIES", DEFAULT_MAX_RETRIES)))
+    except ValueError:
+        return DEFAULT_MAX_RETRIES
+
 class Agent:
     def __init__(self, name: str, role_description: str):
         self.name = name
@@ -74,7 +83,7 @@ class InvestigationOrchestrator:
             # 3. Synthesizer merges (With Auto-Retry)
             print("    -> [Synthesizer] Merging critique and extracting citations...")
             
-            max_retries = 3
+            max_retries = _max_retries()
             attempt = 0
             success = False
             error_feedback = ""
