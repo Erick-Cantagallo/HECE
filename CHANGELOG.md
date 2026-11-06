@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.0.0-beta.2] - 2026-11-05
+### Fixed
+- `pytest` and `python -m hece.main` failed on a fresh clone with `No module named 'hece'`: the package lives in `src/` but was never installable with its dependencies. `pyproject.toml` now declares them, so `pip install -e .` works, and pytest finds `src/` by itself.
+- `requirements.txt` was saved as UTF-16 (PowerShell redirect); it is UTF-8 now, readable by pip, uv, Dependabot and the GitHub UI. Test tooling moved to `requirements-dev.txt`.
+- `test_hypothesis.py` only passed with Ollama running and a cooperative model, and `test_knowledge.py` queried the real arXiv API. Both are now fully mocked.
+- `MAX_RETRIES` was documented but ignored (the Synthesizer always retried 3 times); it is read from the environment now.
+- When Ollama was down or the model was missing, the error text was returned as if it were the model's answer, so the agents reviewed an error message and the run ended with an empty report. `InferenceEngine.ask` now raises `InferenceError` with a message that says how to fix it, and the CLI exits with status 1.
+- Version mismatch between `pyproject.toml` (0.1.0), `CITATION.cff` and this changelog.
+
+### Added
+- `hece` console command and `python -m hece`. `hece "<goal>" -p <project> -n <count>` runs without prompts; with no arguments the interactive prompts remain.
+- GitHub Actions CI (Python 3.10 to 3.13, plus the pinned requirements) and Dependabot.
+- Tests for the inference layer, the CLI, `MAX_RETRIES`, the "None trap" filter and an end-to-end pipeline run with the LLM, arXiv and PDF writer mocked (24 new tests, 40 in total).
+- Rewritten `README.md` (English, marked as under construction, with the vision in the project's own words and an honest list of what does not exist yet), a banner with an "under construction" label and an architecture diagram.
+
+### Changed
+- `.env` is no longer tracked: copy `.env.example` to `.env` (git-ignored). After pulling this change, git removes your local `.env`; the defaults are the same, so nothing breaks.
+- `requires-python >= 3.10` (required by `arxiv` 4.x).
+
 ## [1.0.0-beta] - 2026-07-01
 ### Added
 - Multi-Agent Auto-Retry mechanism for self-healing JSON parsing.
