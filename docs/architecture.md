@@ -1,5 +1,7 @@
 # Current Architecture
 
+> 🚧 HECE is under construction. This page describes the current prototype, not the final design.
+
 HECE is a linear investigation pipeline orchestrated by `run_hece()` in `src/hece/main.py`.
 Deterministic stages never call an LLM; only the multi-agent stage (and the final conclusion) do.
 
