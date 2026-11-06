@@ -1,7 +1,7 @@
 # Runtime dependencies pinned to the versions tested by the author.
 # Flexible install (version ranges): pip install -e .
-arxiv==4.0.0
-fpdf2==2.8.1
-ollama==0.6.2
-pydantic==2.13.4
-python-dotenv==1.2.2
+arxiv==4.0.2
+fpdf2==2.8.9
+ollama==0.6.3
+pydantic==2.14.2
+python-dotenv==1.2.4
