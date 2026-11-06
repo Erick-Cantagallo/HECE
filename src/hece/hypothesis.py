@@ -4,7 +4,7 @@ import json
 import os
 from typing import List
 from hece.core.models.base import GoalAnalysis, KnowledgeContext, ConstraintContext, Hypothesis, Evidence
-from hece.inference import InferenceEngine
+from hece.inference import InferenceEngine, InferenceError
 
 class HypothesisEngine:
     """
@@ -42,7 +42,11 @@ class HypothesisEngine:
             # Add explicit instruction for the LLM to prevent conversational filler
             prompt += "\n\nIMPORTANT: Return ONLY the raw JSON object. Do not include any explanations, greetings, or markdown code blocks (```json). Start directly with '{' and end with '}'."
             
-            response_text = self.inference.ask(prompt)
+            try:
+                response_text = self.inference.ask(prompt)
+            except InferenceError as e:
+                print(f"[ERROR] {e}")
+                return []
             
             try:
                 # Clean markdown if present, despite the instructions
