@@ -84,3 +84,31 @@ def test_negated_or_observational_mentions_are_ignored():
     assert find_red_flags("Telescopes observe light bent near a black hole to calibrate the instrument.", speculative=True) == []
     assert len(find_red_flags("Prediction: a signal of 3 mV is measured, or other means may be used.")) == 1
     assert find_red_flags("A signal of 3 mV, or other means, appears.") == []        # only the Prediction/Refutation part is checked
+
+
+def test_energy_without_input_is_a_law_level_flag():
+    from hece.redflags import law_level_flags
+    flags = find_red_flags("Once started, the self-running rotor drives a generator with no external energy input.")
+    assert law_level_flags(flags)
+
+
+def test_passive_devices_and_negated_mentions_are_not_law_level():
+    from hece.redflags import law_level_flags
+    for text in ["Passive radiative cooling panels need no electricity: they emit infrared to the cold sky.",
+                 "A passive solar distiller works without any electricity or pumps, driven only by sunlight.",
+                 "Unlike perpetual motion machines, this flywheel loses energy to friction and must be recharged.",
+                 "A self-powered sensor harvests vibration energy from the bridge it monitors."]:
+        assert law_level_flags(find_red_flags(text)) == [], text
+
+
+def test_law_level_flag_blocks_acceptance_even_with_a_high_score():
+    from hece.core.models.base import ConstraintContext, Hypothesis
+    from hece.simulation import SimulationEngine
+    text = "The self-running magnet motor powers the house." + " It is built from standard parts and magnets." * 10
+    hyp = Hypothesis(id="h", goal_id="g", description=text, feasibility_score=0.95)
+
+    [result] = SimulationEngine().evaluate([hyp], ConstraintContext(goal_id="g"))
+
+    assert result.feasibility_score == 0.8  # one red flag: -15%, still above the threshold...
+    assert result.status == "rejected" and result.needs_human_review  # ...but it is blocked
+    assert SimulationEngine().rejection_reason(result).startswith("Blocked for human review")

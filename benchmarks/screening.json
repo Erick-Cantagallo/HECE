@@ -1,0 +1,75 @@
+{
+  "description": "Screening benchmark: hypotheses whose verdict is known in advance. 'pass' cases describe established, textbook mechanisms with correct numbers; 'fail' cases break a known law (some obviously, some only through the numbers). The benchmark scores the fixed texts with the same Critic + Synthesizer + SimulationEngine used by run_hece; it does not generate ideas.",
+  "cases": [
+    {
+      "id": "good-heat-pump",
+      "expected": "pass",
+      "why": "Heat pumps move heat instead of creating it; a COP of 3 to 4 is far below the Carnot limit of about 8.8 for these temperatures.",
+      "goal": "How can a house be heated with less electricity?",
+      "hypothesis": "Air-source heat pump instead of resistive heating. A resistive heater turns 1 kWh of electricity into 1 kWh of heat. A heat pump uses the same 1 kWh to drive a vapour-compression cycle that moves heat from the outdoor air into the house, so it delivers 3 to 4 kWh of heat, a coefficient of performance (COP) of 3 to 4. This does not create energy: the extra heat is taken from the outside air. The Carnot limit for delivering heat at 35 C from air at 0 C is 308 / (308 - 273), about 8.8, so a COP of 3.5 is well inside what thermodynamics allows. Prediction: measuring electrical input and delivered heat over a heating season gives a seasonal COP between 2.5 and 4."
+    },
+    {
+      "id": "good-ro-energy-recovery",
+      "expected": "pass",
+      "why": "Pressure-exchanger energy recovery is standard in seawater reverse osmosis and cut specific energy to about 2.5 to 3.5 kWh/m3, still above the thermodynamic minimum near 1.1 kWh/m3.",
+      "goal": "reduce the energy consumption of seawater desalination",
+      "hypothesis": "Reverse osmosis with isobaric pressure exchangers. In seawater reverse osmosis about 55 percent of the pressurised feed leaves the membranes as brine that is still at roughly 60 bar. A rotary pressure exchanger transfers that pressure directly to incoming seawater with about 95 percent efficiency, so the high-pressure pump only has to pressurise a flow equal to the permeate. This lowers the specific energy from 6 to 8 kWh per cubic metre in plants without recovery to about 2.5 to 3.5 kWh per cubic metre, which remains above the thermodynamic minimum of about 1.1 kWh per cubic metre for 50 percent recovery. Prediction: retrofitting a plant with pressure exchangers reduces its measured specific energy by at least 40 percent at the same permeate quality."
+    },
+    {
+      "id": "good-lithium-sulfur",
+      "expected": "pass",
+      "why": "Lithium-sulfur chemistry has a theoretical specific capacity of 1675 mAh/g for sulfur; cells above 400 Wh/kg have been reported, with cycle life as the known limitation.",
+      "goal": "How could a battery store more energy per kilogram?",
+      "hypothesis": "Lithium-sulfur cells with a porous carbon host. Sulfur has a theoretical specific capacity of 1675 mAh per gram because each sulfur atom can accept two electrons, compared with about 200 mAh per gram for layered oxide cathodes in lithium-ion cells. Hosting the sulfur in a conductive porous carbon and adding lithium nitrate to the electrolyte reduces the polysulfide shuttle that otherwise destroys capacity within tens of cycles. Practical cells can then reach 400 to 500 Wh per kilogram against about 250 to 300 Wh per kilogram for current lithium-ion cells, at the cost of shorter cycle life. Prediction: a pouch cell built this way delivers at least 400 Wh per kilogram for 100 cycles with more than 80 percent capacity retention."
+    },
+    {
+      "id": "good-tandem-solar",
+      "expected": "pass",
+      "why": "Two junctions with different band gaps can exceed the single-junction Shockley-Queisser limit; perovskite/silicon tandems above 33 percent have been certified.",
+      "goal": "How can solar panels convert more sunlight into electricity?",
+      "hypothesis": "Perovskite on silicon tandem solar cell. A single-junction cell is limited to about 33 percent efficiency (the Shockley-Queisser limit) because photons with more energy than the band gap waste the excess as heat. Placing a perovskite layer with a band gap near 1.7 eV on top of a silicon cell with a band gap of 1.1 eV lets the top cell absorb blue light at a higher voltage while red and infrared light passes through to the silicon. The two-junction limit is about 45 percent, and laboratory tandems have already passed 33 percent. Prediction: a monolithic tandem with current-matched subcells shows a certified efficiency above the best single-junction silicon cell, which is about 27 percent."
+    },
+    {
+      "id": "good-riblets",
+      "expected": "pass",
+      "why": "Riblets aligned with the flow reduce turbulent skin-friction drag by a few percent; it has been measured in wind tunnels and flight tests.",
+      "goal": "How can an airliner use less fuel?",
+      "hypothesis": "Riblet film on the fuselage and wings. Turbulent skin friction is roughly half of the drag of an airliner in cruise. Small streamwise grooves, called riblets, with a spacing of about 15 to 20 wall units (around 40 to 50 micrometres in cruise) damp the cross-flow motion of near-wall vortices and reduce local skin friction by 5 to 8 percent, as measured in wind tunnels. Covering about 70 percent of the wetted surface would therefore reduce total drag by roughly 2 percent and fuel burn by a similar amount, with no energy being created, only less being dissipated. Prediction: a flight test with riblet film shows a fuel-flow reduction between 1 and 3 percent at the same cruise speed and altitude."
+    },
+    {
+      "id": "bad-perpetual-magnet-motor",
+      "expected": "fail",
+      "why": "Net output with no input violates conservation of energy.",
+      "goal": "How can a house be heated with less electricity?",
+      "hypothesis": "Self-running permanent magnet motor. A rotor carrying neodymium magnets is arranged so that the repulsion between rotor and stator magnets always pushes it forward. Once started by hand, the rotor keeps accelerating until friction balances it and then drives a generator that delivers a continuous 1 kW to the house with no fuel and no electrical input, because the magnetic field never runs out. A flywheel smooths the output and a small part of the power keeps the bearings cool. This gives free heating for decades. Prediction: the device delivers 1 kW of electrical output for at least one year with no external energy input and no measurable loss of magnetization."
+    },
+    {
+      "id": "bad-super-carnot-engine",
+      "expected": "fail",
+      "why": "A heat engine between 400 K and 300 K cannot exceed the Carnot efficiency of 25 percent; 60 percent violates the second law. Only the numbers reveal it.",
+      "goal": "How can waste heat from factories be turned into electricity?",
+      "hypothesis": "High-efficiency organic Rankine cycle for low-grade heat. Factory exhaust at 400 K is used to boil a refrigerant that drives a turbine and is condensed against cooling water at 300 K. By using a zeotropic working fluid whose temperature glide matches the exhaust and an advanced radial turbine with 92 percent isentropic efficiency, the cycle converts 60 percent of the recovered heat into electricity. A plant recovering 10 MW of heat would therefore produce 6 MW of electrical power continuously, paying back in under a year. Prediction: a pilot unit operating between 400 K and 300 K measures a thermal efficiency of at least 55 percent over 1000 hours."
+    },
+    {
+      "id": "bad-structured-water",
+      "expected": "fail",
+      "why": "Water memory and structured water are pseudo-science; separating salt from water has a thermodynamic minimum energy that no field removes.",
+      "goal": "reduce the energy consumption of seawater desalination",
+      "hypothesis": "Zero-energy desalination with structured water. Seawater is passed through a vortex chamber lined with resonant crystals that imprint a hexagonal structure on the water molecules. Structured water remembers this ordered state and naturally expels salt ions, which drift to the walls without any pressure, heat or electricity. The fresh water is drawn from the centre of the vortex while the brine is removed from the edges. Because the separation is driven by the water's own memory, the process needs no energy apart from a small pump, far below the theoretical minimum required by reverse osmosis. Prediction: the outlet salinity falls from 35 to below 0.5 grams per litre with less than 0.1 kWh per cubic metre."
+    },
+    {
+      "id": "bad-zero-point-battery",
+      "expected": "fail",
+      "why": "Zero-point energy is the ground state and cannot be extracted as a net energy source; entanglement does not store energy.",
+      "goal": "How could a battery store more energy per kilogram?",
+      "hypothesis": "Zero-point energy battery. Every cubic centimetre of vacuum contains an enormous zero-point energy. A stack of entangled quantum dots inside the battery couples to these vacuum fluctuations and continuously harvests them, so the cell recharges itself from the quantum vacuum. Because the entanglement links all the dots, energy captured by one dot is shared instantly across the stack, giving an effectively unlimited energy density of more than 100000 Wh per kilogram. The cell never needs an external charger. Prediction: a 10 gram prototype delivers 100 mW continuously for a month without any charging, while its temperature stays equal to the room temperature."
+    },
+    {
+      "id": "bad-ftl-entanglement",
+      "expected": "fail",
+      "why": "The no-communication theorem forbids sending information through entanglement; it would also violate the speed of light limit.",
+      "goal": "How can spacecraft communicate faster with Earth?",
+      "hypothesis": "Instant messaging with entangled photon pairs. Pairs of entangled photons are created on Earth and one photon of each pair is stored on the spacecraft. To send a bit, the ground station measures its photons in one of two bases, which instantly changes the state of the partner photons on the spacecraft. The spacecraft reads the bit by checking which basis its photons collapsed into, so a message reaches Mars in zero seconds instead of 3 to 22 minutes. Storing 1 million pairs allows 1 megabit of instant communication per mission. Prediction: a test between two stations 1000 km apart transmits a message faster than light travel time of 3.3 milliseconds."
+    }
+  ]
+}

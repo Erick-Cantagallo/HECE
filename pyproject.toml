@@ -38,6 +38,7 @@ app = ["streamlit>=1.30"]
 [project.scripts]
 hece = "hece.main:main"
 hece-discover = "hece.discover:main"
+hece-benchmark = "hece.benchmark:main"
 
 [project.urls]
 Homepage = "https://github.com/Erick-Cantagallo/HECE"

@@ -35,9 +35,31 @@ _PATTERNS = [
     ("needs an astronomical object as part of the apparatus",
      r"(?:place|placing|placed|embed\w*|insert\w*|install\w*|build|built)\b.{0,90}\b(?:neutron stars?|black holes?|white dwarfs?|pulsars?)\b"),
     ("extracting vacuum / zero-point energy",
-     r"(?:tap|extract|harvest|borrow)\w*[^.]{0,60}\b(?:vacuum|zero[- ]point)\b[^.]{0,20}(?:energy|fluctuations)"),
+     r"(?:tap|extract|harvest|borrow)\w*[^.]{0,60}\b(?:vacuum|zero[- ]point)\b[^.]{0,20}(?:energy|fluctuations)"
+     r"|(?:recharg|charg|power|energi)\w*[^.]{0,30}\bfrom the (?:quantum )?vacuum\b"),
+    ("water memory / structured water",
+     r"structured water|\bwater\b[^.]{0,40}\b(?:memory|remembers?)\b"),
+    # Not law-level: changing the assumptions behind a limit is a legitimate creative path (e.g. tandem solar cells).
+    ("claims to beat a theoretical or thermodynamic limit",
+     r"(?:below|under|beat\w*|exceed\w*|surpass\w*|break\w*)\s+(?:the\s+)?(?:theoretical|thermodynamic|Carnot|Betz|Landauer)"
+     r"\s+(?:minimum|limit|maximum|bound)"),
 ]
-_NEGATION = re.compile(r"\b(?:no|not|without|never|neither|nor|avoids?|eliminat\w+|instead of|rather than)\b|n't", re.I)
+
+# Output or work claimed with no ENERGY input at all. Passive devices that run without electricity or fuel
+# (solar, radiative cooling) are legitimate, so only 'energy' counts here. These phrases ARE negations, so the
+# negation filter must not apply.
+_NO_ENERGY_INPUT = re.compile(
+    r"\b(?:no|without(?:\s+any)?|zero)\s+(?:external\s+)?energy\s+(?:input|supply|source)\b"
+    r"|\b(?:needs?|requires?)\s+no\s+(?:external\s+)?energy\b"
+    r"|\bself-running\b|\bkeeps?\s+accelerating\b|\bfree\s+(?:electricity|power)\b", re.I)  # not 'free energy': Gibbs/Helmholtz free energy is physics
+_PERPETUAL = "perpetual motion / over-unity / free energy"
+
+# Categories that, if true, contradict a fundamental law. They are text heuristics, so they do not zero the score,
+# but they block acceptance: a human has to look (SimulationEngine.evaluate).
+LAW_LEVEL = (_PERPETUAL, "faster-than-light travel or signalling", "entropy reversal or negative entropy claim",
+             "extracting vacuum / zero-point energy")
+_NEGATION = re.compile(r"\b(?:no|not|without|never|neither|nor|avoids?|eliminat\w+|instead of|rather than|unlike|"
+                       r"as opposed to)\b|n't", re.I)
 
 
 def find_red_flags(text: str, speculative: bool = False) -> List[str]:
@@ -58,6 +80,10 @@ def find_red_flags(text: str, speculative: bool = False) -> List[str]:
             snippet = " ".join(m.group(0).split())[:80]
             flags.append(f"{name}: '{snippet}'")
             break
+    if not any(f.startswith(_PERPETUAL) for f in flags):
+        m = _NO_ENERGY_INPUT.search(text or "")
+        if m:
+            flags.append(f"{_PERPETUAL}: '{' '.join(m.group(0).split())[:80]}'")
     flags.extend(_extraordinary_energy_claims(text or ""))
     flags.extend(_vague_wording(text or ""))
     return flags
@@ -100,3 +126,8 @@ def _vague_wording(text: str) -> List[str]:
         return []
     hit = _VAGUE.search(m.group(1))
     return [f"vague prediction/refutation wording (not falsifiable as written): '{' '.join(hit.group(0).split())}'"] if hit else []
+
+
+def law_level_flags(flags: List[str]) -> List[str]:
+    """The red flags whose category contradicts a fundamental law (see LAW_LEVEL)."""
+    return [f for f in flags if f.startswith(LAW_LEVEL)]

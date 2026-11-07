@@ -108,9 +108,9 @@ class PaperGenerator:
         meth_text += "\nB. VIABILITY SCORE CALCULATION:\n"
         meth_text += "The AI proposes an initial viability estimate; the Python Simulation Engine then applies these rules in order:\n"
         meth_text += "  1. Substance Lock: a description under 50 words scores 0%.\n"
-        meth_text += "  2. Any VERIFIED violation of a hard constraint (law and quote checked by Python) scores 0%.\n"
-        meth_text += "  3. Otherwise: AI estimate, minus 15% per logical flaw, 15% per red flag (known pseudo-scientific patterns), 5% per unproven assumption and 10% per unverified accusation.\n"
-        meth_text += "  4. A hypothesis is accepted only with a final score of at least 65%.\n"
+        meth_text += "  2. Any VERIFIED violation of a hard constraint scores 0%: either the Critic's accusation with a quote checked by Python, or a law checked by arithmetic (heat-to-work efficiency above the Carnot limit of the stated temperatures).\n"
+        meth_text += "  3. Otherwise: AI estimate, minus 15% per logical flaw, 15% per red flag (known pseudo-scientific patterns), 5% per unproven assumption. Accusations Python could not verify are listed and require human review, but do not change the score.\n"
+        meth_text += "  4. A hypothesis is accepted only with a final score of at least 65% and no red flag that contradicts a fundamental law (energy without input, faster-than-light signalling, energy from the vacuum, entropy reversal); those are blocked for human review.\n"
         meth_text += "  5. Acceptance means automated screening only; accepted hypotheses still require expert review."
         if exploration_log:
             meth_text += "\n\nC. INVENTOR MODE (speculative exploration):\n"

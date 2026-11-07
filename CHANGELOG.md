@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Screening benchmark (`hece-benchmark`, cases in `benchmarks/screening.json`): 5 sound hypotheses and 5 that break a known law, scored by the same Critic + Synthesizer + SimulationEngine as `run_hece`. It measures the filter, not the inventor.
+- `lawchecks.py`: laws checked by arithmetic. A heat-to-work efficiency above the Carnot limit of the temperatures the text states is a VERIFIED violation of the Second Law (score 0, the calculation is the evidence). In the first benchmark run `llama3` rated such an engine 90%.
+- Law-level red flags: energy without any energy input (self-running, "needs no energy"), faster-than-light signalling, energy from the vacuum and entropy reversal now block acceptance and send the hypothesis to human review instead of only costing 15%. Passive devices that need no electricity (solar, radiative cooling) are not flagged.
+- New red flags: water memory / structured water, and claims to beat a theoretical or thermodynamic limit (not blocking: changing the assumptions behind a limit is a legitimate creative path).
+
+### Changed
+- Accusations that Python cannot verify no longer lower the score (they were -10% each). They are still listed in the report and still require human review. In the first benchmark run this penalty sank 4 of 5 sound hypotheses.
+- "unlike" and "as opposed to" count as negations for red flags ("unlike perpetual motion machines, ..." is not a red flag).
+- `CLAUDE.md` with the project goal, map, commands and working rules for AI assistants.
+
+### Measured
+- `hece-benchmark` with `llama3` 8B: before these changes 1 of 5 sound hypotheses and 0 of 5 law-breaking ones were accepted; after, on a fresh run, 4 of 5 and 0 of 5 (accuracy 0.9). The score alone does not separate the groups (a faster-than-light case and a sound case both scored 60%): the law-level block is what keeps law-breaking ideas out. 10 cases are few, and the red flags were written while looking at them, so new held-out cases are needed before trusting these numbers.
+
 ## [1.0.0] - 2026-11-07
 ### Added
 - Inventor mode (discovery engine): explores, recombines and refines mechanisms for a goal, remembers failed attempts, can postulate new physical quantities with SI dimensions, and logs every attempt to `runs/`. Available as `hece-discover`, `python -m hece.discover` and in the Streamlit app (`app.py`, `pip install -e ".[app]"`).

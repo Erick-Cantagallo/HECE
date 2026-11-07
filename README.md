@@ -43,6 +43,8 @@ HECE has two modes that share the same building blocks ([architecture](docs/arch
 
 The **inventor mode** ([discovery engine](docs/DISCOVERY_ENGINE.md)): instead of a fixed number of hypotheses, it keeps trying different mechanisms for a goal (explore, recombine unrelated concepts, refine near-misses), remembers what failed and why, and after repeated failures may postulate a new physical quantity, which must declare SI dimensions, an equation and when it reduces to known physics. Every attempt is logged in `runs/`.
 
+**Measuring the filter.** `hece-benchmark` scores 10 hypotheses whose verdict is known in advance. With `llama3` it currently accepts 4 of 5 sound ones and 0 of 5 that break a known law (one of those, an engine above the Carnot limit, was rated 90% by the model and stopped by a calculation in Python). It is a small, early benchmark.
+
 **Not there yet:**
 
 - **A proven creative core.** Inventor mode is a first attempt at the idea above (finding a way around a barrier by creating something new first), but it has not been validated: whether its candidates are any good still depends on the model and needs human review.

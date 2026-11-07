@@ -2,9 +2,11 @@
 
 **Project:** HECE — Hypothesis & Creativity Engine
 
-**Current Version:** Pre-Alpha
+**Current Version:** 1.0.0 (research prototype)
 
-**Current Milestone:** Sprint 1 — Goal Interpreter
+**Current Milestone:** calibration of the screening (see `ROADMAP.md`)
+
+> This page keeps the original vision and rules. The sections "Current Architecture", "Repository Status" and "Next Immediate Goal" describe Sprint 1 and are kept for history; the current state is in `docs/architecture.md`, `ROADMAP.md` and `CHANGELOG.md`.
 
 ---
 

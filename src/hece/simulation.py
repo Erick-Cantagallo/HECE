@@ -1,6 +1,7 @@
 # HECE/src/hece/simulation.py
 import re
-from hece.redflags import find_red_flags
+from hece.lawchecks import find_carnot_violations
+from hece.redflags import find_red_flags, law_level_flags
 from hece.numerics import find_numeric_inconsistencies, find_scale_mismatch
 from typing import List
 from hece.core.models.base import Hypothesis, ConstraintContext
@@ -18,7 +19,9 @@ class SimulationEngine:
         self.PENALTY_POSTULATE = 0.10
         self.PENALTY_LOGICAL_FLAW = 0.15
         self.PENALTY_UNPROVEN_PREMISE = 0.05
-        self.PENALTY_UNVERIFIED_ACCUSATION = 0.10
+        # An accusation Python could not verify is the model's unproven opinion: it is shown and sends the hypothesis
+        # to human review, but it must not move the score (benchmarks/screening.json: it sank 4 of 5 sound ideas).
+        self.PENALTY_UNVERIFIED_ACCUSATION = 0.0
         self.PENALTY_RED_FLAG = 0.15
         self.PENALTY_NUMERIC = 0.15
         self.SUBSTANCE_THRESHOLD = 50
@@ -73,11 +76,12 @@ class SimulationEngine:
                 hyp.ai_estimate = hyp.feasibility_score
             hyp.red_flags = find_red_flags(hyp.description, speculative=self.speculative)
             hyp.numeric_flags = find_numeric_inconsistencies(hyp.description) + find_scale_mismatch(hyp.description)
+            self._apply_law_checks(hyp, boundaries)
             score = self.calculate_viability(hyp)
             hyp.feasibility_score = score
             
-            # Rejection Sampling conditions (Minimum 65% and 0 broken physics)
-            if score >= self.MIN_VIABILITY and len(hyp.violated_hard_constraints) == 0:
+            # Rejection Sampling conditions (Minimum 65%, 0 broken physics, no law-level red flag)
+            if score >= self.MIN_VIABILITY and len(hyp.violated_hard_constraints) == 0 and not law_level_flags(hyp.red_flags):
                 hyp.status = "active"
             else:
                 hyp.status = "rejected"
@@ -89,6 +93,15 @@ class SimulationEngine:
             evaluated_list.append(hyp)
             
         return evaluated_list
+
+    @staticmethod
+    def _apply_law_checks(hyp: Hypothesis, boundaries: ConstraintContext) -> None:
+        """Laws checked by arithmetic (lawchecks.py) become VERIFIED violations, with the calculation as evidence."""
+        for law, evidence in find_carnot_violations(hyp.description):
+            listed = next((c for c in boundaries.hard_constraints if "Second Law" in c), law)
+            if listed not in hyp.violated_hard_constraints:
+                hyp.violated_hard_constraints.append(listed)
+                hyp.violation_evidence.append(f"[checked by Python] {evidence}")
 
     def is_borderline(self, hypothesis: Hypothesis) -> bool:
         """Rejected, no verified violation, but within 10 points of the threshold: a human should look."""
@@ -106,6 +119,10 @@ class SimulationEngine:
             ev = " || ".join(hypothesis.violation_evidence)
             return ("Verified violation of: " + "; ".join(hypothesis.violated_hard_constraints) + "."
                     + (f" Evidence: {ev}" if ev else ""))
+        blocking = law_level_flags(hypothesis.red_flags)
+        if blocking and hypothesis.feasibility_score >= self.MIN_VIABILITY:
+            return ("Blocked for human review: the text matches a pattern that contradicts a fundamental law ("
+                    + "; ".join(blocking) + "). The score alone would have passed.")
         est = hypothesis.ai_estimate if hypothesis.ai_estimate is not None else hypothesis.feasibility_score
         return (f"AI estimate {est * 100:.0f}% -> final {hypothesis.feasibility_score * 100:.0f}% after penalties "
                 f"(logical flaws: {len(hypothesis.logical_flaws)}, assumptions: {len(hypothesis.assumptions)}, "
