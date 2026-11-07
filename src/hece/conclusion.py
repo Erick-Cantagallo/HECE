@@ -1,6 +1,8 @@
 # HECE/src/hece/conclusion.py
 from typing import List
 from hece.core.models.base import Hypothesis
+from hece.lawchecks import find_law_violations
+from hece.redflags import find_red_flags, law_level_flags
 from hece.simulation import SimulationEngine
 
 
@@ -59,7 +61,7 @@ def build_discovery_conclusion(result) -> str:
              f"{count('invalid')} invalid format, {count('failed')} assessment failures."]
 
     mix = []
-    for strategy in ("explore", "recombine", "refine", "postulate"):
+    for strategy in ("explore", "recombine", "refine", "postulate", "reroute"):
         subset = [a for a in atts if a.strategy == strategy]
         if subset:
             mix.append(f"{strategy} {sum(1 for a in subset if a.outcome == 'accepted')}/{len(subset)}")
@@ -86,6 +88,8 @@ def build_discovery_conclusion(result) -> str:
                          f"(AI estimate {(h.ai_estimate if h.ai_estimate is not None else h.feasibility_score) * 100:.0f}%).")
             for p in h.postulates:
                 lines.append(f"  Postulated: {p[:240]}")
+            if h.route:
+                lines.append(f"  Alternative path (law kept): {h.route[:240]}")
             if h.confirmation_scores:
                 lines.append("  Survived independent re-assessments: " + ", ".join(f"{x * 100:.0f}%" for x in h.confirmation_scores))
             lines.append(f"  Prediction: {h.prediction[:240]}")
@@ -95,6 +99,21 @@ def build_discovery_conclusion(result) -> str:
                      "did not survive, not that the goal is impossible.")
         for i, h in enumerate(result.near_misses(3), 1):
             lines.append(f"Closest attempt {i}: {h.title or h.family} [{h.strategy}] {h.feasibility_score * 100:.0f}%.")
+
+    # The project's definition of success: show what discoveries would be required to move forward.
+    missing = []
+    for a in atts:
+        if a.hypothesis is not None and a.outcome in ("accepted", "rejected"):
+            for tech in a.hypothesis.missing_technology:
+                if tech not in missing:
+                    missing.append(tech)
+    if missing:
+        lines.append("What would have to be invented first (declared by the candidates, not verified):")
+        for tech in missing[:8]:
+            # a "missing technology" that itself contradicts a law is not a path forward
+            blocking = [law for law, _ in find_law_violations(tech)] + law_level_flags(find_red_flags(tech, speculative=True))
+            lines.append(f"  - {tech[:240]}" + (f"  [this would itself contradict a law: {blocking[0].split(':')[0]}]"
+                                                 if blocking else ""))
 
     kinds = {}
     for a in atts:

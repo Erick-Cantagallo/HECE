@@ -37,3 +37,26 @@ def test_simulation_turns_a_carnot_violation_into_a_verified_violation():
     assert result.status == "rejected" and result.feasibility_score == 0.0
     assert result.violated_hard_constraints == LAWS.hard_constraints
     assert result.violation_evidence[0].startswith("[checked by Python]")
+
+
+def test_speeds_above_light_are_violations_in_every_notation():
+    from hece.lawchecks import find_superluminal_speeds
+    for text in ["SPEC: 10¹⁰ m/s electron velocity in vacuum",          # the real inventor-mode output
+                 "the probe travels at 1e9 m/s", "a jet of 4 × 10^8 m/s", "about 500000 km/s"]:
+        [(law, evidence)] = find_superluminal_speeds(text)
+        assert law.startswith("Speed of light") and "times the speed of light" in evidence, text
+
+
+def test_ordinary_speeds_and_phase_velocities_are_not_violations():
+    from hece.lawchecks import find_superluminal_speeds
+    for text in ["electrons at 2.5e7 m/s", "light itself at 3 × 10^8 m/s", "a 10 m/s wind",
+                 "the phase velocity in the waveguide is 4e8 m/s"]:
+        assert find_superluminal_speeds(text) == [], text
+
+
+def test_simulation_rejects_a_superluminal_hypothesis_as_a_verified_violation():
+    laws = ConstraintContext(goal_id="g", hard_constraints=["MUST NOT VIOLATE: Speed of light in a vacuum is an absolute limit (c)"])
+    hyp = Hypothesis(id="h", goal_id="g", description="Electrons are accelerated to 1e10 m/s in the gun." + FILLER,
+                     feasibility_score=0.9)
+    [result] = SimulationEngine().evaluate([hyp], laws)
+    assert result.feasibility_score == 0.0 and result.violated_hard_constraints == laws.hard_constraints

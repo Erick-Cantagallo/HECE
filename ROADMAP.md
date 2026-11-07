@@ -35,8 +35,14 @@
 - Postulated quantities must declare SI dimensions, an equation, a magnitude and when they reduce to known physics.
 - Real end-to-end runs with a local model; installable package with `hece` and `hece-discover` commands; CI on Python 3.10 to 3.13.
 
+## [Done] Sprint 13: Calibration & Alternative Paths
+- Screening benchmark with held-out cases (`benchmarks/RESULTS.md`); default model chosen by measurement.
+- Carnot check in Python; law-level red flags block acceptance.
+- REROUTE: an idea that runs into a law gets an alternative-path attempt; reports list what would have to be invented first.
+
 ## [Planned] Next
+- A new held-out set, then more arithmetic law checks (Betz limit, refrigeration COP, Landauer limit, catalysts cannot shift equilibrium), measured on that set.
+- Better arXiv queries: the keywords come from the goal's words (e.g. "store"), so the right concept ("specific energy") is often missing.
+- Make the judge less harsh on sound ideas without letting violations through (assumption penalty, prompt), measured with the benchmark.
 - Built-in laws for more domains (chemistry, materials, medicine).
-- Benchmark goals with known answers, to measure whether the screening keeps good ideas and rejects bad ones.
-- Better literature relevance (the arXiv query is built from three keywords only).
 - Unicode font in the PDF.

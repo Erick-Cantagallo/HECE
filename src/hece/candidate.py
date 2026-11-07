@@ -4,7 +4,7 @@ Structured format for inventor-mode hypotheses.
 
 The model answers in labelled lines (not JSON: small local models break JSON often).
 Python parses and validates the structure deterministically:
-  TITLE / FAMILY / MECHANISM / [NEW QUANTITY ...] / PREDICTION / REFUTATION
+  TITLE / FAMILY / MECHANISM / [NEW QUANTITY ...] / [ROUTE] / [REQUIRES ...] / PREDICTION / REFUTATION
 """
 import re
 from dataclasses import dataclass, field
@@ -15,9 +15,10 @@ from hece.dimensions import parse_dimensions, describe, same_dimension_as
 MIN_MECHANISM_WORDS = 30
 MIN_PREDICTION_WORDS = 8
 MAX_POSTULATES = 2
+MIN_ROUTE_WORDS = 12
 
 _LABEL = re.compile(
-    r"^\s*(?:[-*\u2022#>]+\s*|\d+[.)]\s*)?(TITLE|FAMILY|MECHANISM|NEW QUANTITY|PREDICTION|REFUTATION)\s*:\s*(.*)$",
+    r"^\s*(?:[-*\u2022#>]+\s*|\d+[.)]\s*)?(TITLE|FAMILY|MECHANISM|NEW QUANTITY|ROUTE|REQUIRES|PREDICTION|REFUTATION)\s*:\s*(.*)$",
     re.I)
 _FIELD = re.compile(
     r"^\s*(DIMENSIONS?|DEFINITION|COUPLING|SYMBOL|EQUATION|MAGNITUDE|"
@@ -63,6 +64,8 @@ class Candidate:
     postulates: List[Postulate] = field(default_factory=list)
     prediction: str = ""
     refutation: str = ""
+    route: str = ""                                      # REROUTE: how this version keeps the law that stopped its parent
+    requires: List[str] = field(default_factory=list)    # technologies that do not exist yet, each with a numeric SPEC
     raw: str = ""
 
 
@@ -129,6 +132,10 @@ def parse_candidate(text: str) -> Candidate:
             cand.prediction = value
         elif label == "REFUTATION" and not cand.refutation:
             cand.refutation = value
+        elif label == "ROUTE" and not cand.route:
+            cand.route = value
+        elif label == "REQUIRES" and value.lower() not in _NONE_NAMES:
+            cand.requires.append(value)
         elif label == "NEW QUANTITY":
             post = _parse_postulate(value)
             if post:
@@ -217,6 +224,13 @@ def validate_candidate(cand: Candidate, allow_new_physics: bool, strategy: str =
     if _words(cand.refutation) < MIN_PREDICTION_WORDS:
         issues.append(f"REFUTATION missing or shorter than {MIN_PREDICTION_WORDS} words")
 
+    if strategy == "reroute" and _words(cand.route) < MIN_ROUTE_WORDS:
+        issues.append(f"a REROUTE attempt needs a ROUTE line of at least {MIN_ROUTE_WORDS} words: which law stopped the "
+                      "earlier idea and how this version keeps it true")
+    for req in cand.requires:
+        if not re.search(r"\d", re.split(r"SPEC\s*:", req, maxsplit=1, flags=re.I)[-1]):
+            issues.append(f"REQUIRES '{req[:60]}' needs a number in its SPEC (a measurable target for the missing technology)")
+
     if cand.postulates and not (allow_new_physics and strategy == "postulate"):
         issues.append("NEW QUANTITY is only allowed in POSTULATE attempts (use known physics here)")
     if strategy == "postulate" and allow_new_physics and not cand.postulates:
@@ -274,6 +288,10 @@ def compose_description(cand: Candidate) -> str:
     parts = [cand.title, f"Mechanism family: {cand.family}", cand.mechanism]
     for p in cand.postulates:
         parts.append(f"Postulated new quantity: {format_postulate(p)}")
+    if cand.route:
+        parts.append(f"Alternative path (law kept): {cand.route}")
+    for req in cand.requires:
+        parts.append(f"Requires (does not exist yet): {req}")
     parts.append(f"Prediction: {cand.prediction}")
     parts.append(f"Refutation: {cand.refutation}")
     return "\n".join(parts)

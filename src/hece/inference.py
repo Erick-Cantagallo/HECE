@@ -4,6 +4,10 @@ import ollama
 from typing import Optional
 
 
+# Chosen with hece-benchmark (benchmarks/RESULTS.md): it let no law-breaking case through, llama3 let 3 of 11.
+DEFAULT_MODEL = "qwen3:4b-instruct-2507-q4_K_M"
+
+
 class InferenceError(RuntimeError):
     """The local LLM (Ollama) could not answer. The message explains how to fix it."""
 
@@ -17,7 +21,7 @@ class InferenceEngine:
     SERVER_ERROR_RETRIES = 1
     RETRY_DELAY_SECONDS = 5
 
-    def __init__(self, model_name: str = "llama3"):
+    def __init__(self, model_name: str = DEFAULT_MODEL):
         self.model_name = model_name
 
     def ask(self, prompt: str, temperature: Optional[float] = None) -> str:

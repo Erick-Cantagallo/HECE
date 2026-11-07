@@ -2,17 +2,28 @@
 
 ## [Unreleased]
 ### Added
+- **REROUTE strategy (inventor mode).** An idea that runs into a physical law is no longer simply discarded: the next attempt must reach the same effect while keeping the law, by paying the cost the law demands, relying on a technology that does not exist yet (`REQUIRES: ... | SPEC: <number>`), or changing the condition the limit depends on. Proven conflicts (verified violation, law-level red flag) are rerouted first, then conflicts the Critic suspected; a suspicion only chooses the strategy and never changes a score. Each missing technology costs 10%. Once per idea, never twice in a row; `DiscoveryConfig(reroute=False)` turns it off.
+- The inventor-mode conclusion lists **what would have to be invented first**, and marks a "missing technology" that would itself contradict a law.
+- Held-out benchmark cases (`benchmarks/heldout.json`, committed before their first run) and `benchmarks/RESULTS.md`.
+- arXiv results are re-ranked by how many goal keywords they contain (title counts double), with no extra request.
 - Screening benchmark (`hece-benchmark`, cases in `benchmarks/screening.json`): 5 sound hypotheses and 5 that break a known law, scored by the same Critic + Synthesizer + SimulationEngine as `run_hece`. It measures the filter, not the inventor.
-- `lawchecks.py`: laws checked by arithmetic. A heat-to-work efficiency above the Carnot limit of the temperatures the text states is a VERIFIED violation of the Second Law (score 0, the calculation is the evidence). In the first benchmark run `llama3` rated such an engine 90%.
+- `lawchecks.py`: laws checked by arithmetic (Carnot limit; speed of light added later). A heat-to-work efficiency above the Carnot limit of the temperatures the text states is a VERIFIED violation of the Second Law (score 0, the calculation is the evidence). In the first benchmark run `llama3` rated such an engine 90%.
 - Law-level red flags: energy without any energy input (self-running, "needs no energy"), faster-than-light signalling, energy from the vacuum and entropy reversal now block acceptance and send the hypothesis to human review instead of only costing 15%. Passive devices that need no electricity (solar, radiative cooling) are not flagged.
 - New red flags: water memory / structured water, and claims to beat a theoretical or thermodynamic limit (not blocking: changing the assumptions behind a limit is a legitimate creative path).
 
 ### Changed
+- **Default model is now `qwen3:4b-instruct-2507-q4_K_M`** (was `llama3`): on the held-out cases it accepted 0 of 6 law-breaking hypotheses where `llama3` accepted 3 of 6, and it runs about 3 times faster on a 6 GB GPU. `MODEL_NAME` still overrides it. Pull it with `ollama pull qwen3:4b-instruct-2507-q4_K_M`.
+- "work/energy/power from the vacuum" is a law-level red flag.
+- Speeds written as numbers above the speed of light (any notation, e.g. `10^10 m/s`, `4 x 10^8 m/s`, `500000 km/s`; phase velocities excepted) are verified violations, like the Carnot check. Found in a real run, where a "missing technology" asked for electrons at 33 times the speed of light.
+- `examples/inventor-portal-gun/`: a real run with REROUTE.
 - Accusations that Python cannot verify no longer lower the score (they were -10% each). They are still listed in the report and still require human review. In the first benchmark run this penalty sank 4 of 5 sound hypotheses.
 - "unlike" and "as opposed to" count as negations for red flags ("unlike perpetual motion machines, ..." is not a red flag).
 - `CLAUDE.md` with the project goal, map, commands and working rules for AI assistants.
 
 ### Measured
+- Held-out cases: `llama3` accepted 1 of 6 sound and 3 of 6 law-breaking hypotheses; `qwen3:4b-instruct-2507` 2 of 6 and 0 of 6. See `benchmarks/RESULTS.md`.
+- Real inventor runs on "I want to create a portal gun" with `qwen3:4b`: about 0.7 min per attempt; REROUTE fired 3 times in 8 attempts and each declared a missing technology with a numeric spec. No candidate passed.
+- arXiv re-ranking did not change the two papers returned for the battery goal: the weak point is the query (keywords such as "store"), not the ranking.
 - `hece-benchmark` with `llama3` 8B: before these changes 1 of 5 sound hypotheses and 0 of 5 law-breaking ones were accepted; after, on a fresh run, 4 of 5 and 0 of 5 (accuracy 0.9). The score alone does not separate the groups (a faster-than-light case and a sound case both scored 60%): the law-level block is what keeps law-breaking ideas out. 10 cases are few, and the red flags were written while looking at them, so new held-out cases are needed before trusting these numbers.
 
 ## [1.0.0] - 2026-11-07

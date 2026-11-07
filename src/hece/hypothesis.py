@@ -4,7 +4,7 @@ import json
 import os
 from typing import List
 from hece.core.models.base import GoalAnalysis, KnowledgeContext, ConstraintContext, Hypothesis, Evidence
-from hece.inference import InferenceEngine, InferenceError
+from hece.inference import DEFAULT_MODEL, InferenceEngine, InferenceError
 
 class HypothesisEngine:
     """
@@ -13,7 +13,7 @@ class HypothesisEngine:
 
     def __init__(self):
         # Initialize inference engine with config from .env
-        model = os.getenv("MODEL_NAME", "llama3")
+        model = os.getenv("MODEL_NAME", DEFAULT_MODEL)
         self.inference = InferenceEngine(model_name=model)
 
     def _build_system_prompt(self, analysis: GoalAnalysis, knowledge: KnowledgeContext, constraints: ConstraintContext) -> str:

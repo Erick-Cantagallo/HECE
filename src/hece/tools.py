@@ -14,6 +14,14 @@ def _arxiv_id(entry_id) -> str:
     return re.sub(r"v\d+$", "", str(entry_id).split("/abs/")[-1])
 
 
+def _stem(keyword: str) -> str:
+    """Crude stem so 'battery' also matches 'batteries' and 'membrane' matches 'membranes'."""
+    k = keyword.lower()
+    if k.endswith("y") and len(k) > 4:
+        return k[:-1]
+    return k[:-1] if k.endswith("e") and len(k) > 5 else k
+
+
 class ScientificToolbox:
     """
     A collection of external tools to fetch real-world data for RAG.
@@ -61,21 +69,28 @@ class ScientificToolbox:
         search = arxiv.Search(query=query, max_results=fetch, sort_by=arxiv.SortCriterion.Relevance)
 
         needed = min(2, len(keywords)) if keywords else 0
-        entries = []
-        for paper in client.results(search):
+        found = []   # (relevance, arrival order, title, id, summary)
+        for order, paper in enumerate(client.results(search)):
             title = " ".join(str(paper.title).split())
             summary = str(paper.summary)
             if keywords:
-                haystack = f"{title} {summary}".lower()
-                if sum(1 for k in keywords if k.lower() in haystack) < needed:
+                in_title = sum(1 for k in keywords if _stem(k) in title.lower())
+                in_text = sum(1 for k in keywords if _stem(k) in f"{title} {summary}".lower())
+                if in_text < needed:
                     continue
-            entries.append(f"\n- [{len(entries) + 1}] Title: {title}\n  ID: {_arxiv_id(paper.entry_id)}\n  Summary: {summary}\n")
-            if len(entries) >= max_results:
+                relevance = 2 * in_title + in_text     # a keyword in the title says more than one in the abstract
+            else:
+                relevance = 0
+            found.append((relevance, order, title, _arxiv_id(paper.entry_id), summary))
+            if not keywords and len(found) >= max_results:
                 break
 
-        if not entries:
+        # Re-rank what was fetched (no extra request): most keywords first, arXiv's own order breaks ties.
+        best = sorted(found, key=lambda f: (-f[0], f[1]))[:max_results]
+        if not best:
             return ""
-        return "REAL SCIENTIFIC LITERATURE RETRIEVED:\n" + "".join(entries)
+        return "REAL SCIENTIFIC LITERATURE RETRIEVED:\n" + "".join(
+            f"\n- [{n}] Title: {title}\n  ID: {pid}\n  Summary: {summary}\n" for n, (_, _, title, pid, summary) in enumerate(best, 1))
 
     @staticmethod
     def search_arxiv(query: str, max_results: int = 2, keywords: Optional[List[str]] = None,
