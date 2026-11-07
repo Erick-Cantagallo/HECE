@@ -33,7 +33,7 @@ flowchart TD
 | Knowledge Engine | `knowledge.py`, `tools.py` | `KnowledgeContext` (domain laws, arXiv literature with a local cache, limitations) |
 | Constraint Engine | `constraints.py` | `ConstraintContext` (hard constraints, soft constraints, criteria) |
 | Agent Pool + Orchestrator | `agents.py`, `inference.py` | `Hypothesis`: Expert proposes, Critic checks laws and internal flaws, Synthesizer extracts JSON (auto-retry, `MAX_RETRIES`) |
-| Verification | `verification.py`, `redflags.py`, `numerics.py`, `lawchecks.py` | only accusations with a real quote count; invented citations are dropped; known pseudo-science patterns and wrong unit conversions are flagged; efficiencies above the Carnot limit are verified violations; law-level red flags block acceptance |
+| Verification | `verification.py`, `redflags.py`, `numerics.py`, `lawchecks.py` | only accusations with a real quote count; invented citations are dropped; known pseudo-science patterns and wrong unit conversions are flagged; efficiencies above the Carnot limit and speeds above c are verified violations; law-level red flags block acceptance |
 | Simulation Engine | `simulation.py` | feasibility score and status (formula printed in every PDF) |
 | Conclusion | `conclusion.py` | plain-text summary built without any LLM call, so it cannot endorse anything |
 | Paper Generator | `paper.py` | PDF report |

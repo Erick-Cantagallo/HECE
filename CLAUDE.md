@@ -12,11 +12,11 @@ Design rule that follows from it: **the LLM proposes, Python decides.** Nothing 
 
 `src/hece/`:
 - `main.py`: classic CLI `hece` and `run_hece()` (rejection sampling, up to 4 attempts per requested hypothesis, near misses shown when none pass).
-- `discover.py` / `pipeline.py` / `explorer.py`: inventor mode `hece-discover` (explore, recombine, refine, postulate; archive in `runs/*.json`). Details: `docs/DISCOVERY_ENGINE.md`.
+- `discover.py` / `pipeline.py` / `explorer.py`: inventor mode `hece-discover` (explore, recombine, refine, postulate, reroute; archive in `runs/*.json`). REROUTE is the goal's "alternative path": an idea that ran into a law must reach the same effect while keeping it. Details: `docs/DISCOVERY_ENGINE.md`.
 - `agents.py`: Expert / Inventor / Critic / Synthesizer; `assess()` scores one hypothesis text.
 - `inference.py`: Ollama calls; raises `InferenceError`, retries once on 5xx.
-- `verification.py`, `redflags.py`, `numerics.py`, `dimensions.py`, `candidate.py`: deterministic checks. `lawchecks.py`: laws checked by arithmetic (Carnot) become verified violations. Law-level red flags (`redflags.LAW_LEVEL`) block acceptance.
-- `benchmark.py` (`hece-benchmark`, cases in `benchmarks/screening.json`): scores fixed texts with a known verdict to measure the screening. Run it after any change to scoring, prompts or red flags; do not tune the filter to the cases without adding held-out ones.
+- `verification.py`, `redflags.py`, `numerics.py`, `dimensions.py`, `candidate.py`: deterministic checks. `lawchecks.py`: laws checked by arithmetic (Carnot limit, speed of light) become verified violations. Law-level red flags (`redflags.LAW_LEVEL`) block acceptance.
+- `benchmark.py` (`hece-benchmark`, cases in `benchmarks/screening.json`): scores fixed texts with a known verdict to measure the screening. Run it on both `screening.json` and `heldout.json` after any change to scoring, prompts or red flags. Never tune the filter to `heldout.json`: write a new held-out set instead.
 - `simulation.py`: score formula (threshold `MIN_VIABILITY = 0.65`). `conclusion.py`: conclusion without LLM. `paper.py`: PDF.
 - `interpreter.py`, `knowledge.py` (+ `tools.py`, arXiv with cache in `.hece_cache/`), `constraints.py`: pipeline front end.
 - `hypothesis.py`, `report.py`: legacy, not in the main flow.
@@ -28,7 +28,7 @@ Architecture: `docs/architecture.md`. History: `CHANGELOG.md`. Plans: `ROADMAP.m
 
 - Tests: `.venv/Scripts/python.exe -m pytest -q -p no:cacheprovider` (about 2 s). After `git pull` or new entry points: `.venv/Scripts/python.exe -m pip install -e ".[dev]"`. Tests must never call Ollama or arXiv: mock `hece.agents.InferenceEngine.ask` and `ScientificToolbox.search_arxiv` (see `tests/conftest.py`).
 - Real runs are slow (llama3 8B on a 6 GB GTX 1660 SUPER: ~1.5 to 3.5 min per attempt). Run them with `run_in_background` and `PYTHONUNBUFFERED=1 PYTHONIOENCODING=utf-8`.
-- Ollama: check with `curl -s localhost:11434/api/version`; if down, `ollama list` usually starts the desktop app. Models available: `llama3` (default), `qwen3:4b-instruct-2507-q4_K_M`, `llama3.2:3b`. Choose with `MODEL_NAME`.
+- Ollama: check with `curl -s localhost:11434/api/version`; if down, `ollama list` usually starts the desktop app. Models available: `qwen3:4b-instruct-2507-q4_K_M` (default, `inference.DEFAULT_MODEL`, ~0.7 min per inventor attempt), `llama3` (~2 min), `llama3.2:3b`. Choose with `MODEL_NAME`. Benchmark numbers per model: `benchmarks/RESULTS.md`.
 - arXiv returns HTTP 429 when called too often; the code degrades gracefully. Use `--no-rag` for quick runs.
 - Do not `pip install -e .` while `hece` / `hece-discover` is running: Windows locks the `.exe` and the install half-fails.
 

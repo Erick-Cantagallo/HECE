@@ -54,3 +54,40 @@ def find_carnot_violations(text: str) -> List[Tuple[str, str]]:
                             f"{limit * 100:.1f}%")
                 return [("Second Law of Thermodynamics (Carnot limit)", evidence)]
     return []
+
+
+SPEED_OF_LIGHT = 299_792_458.0  # m/s; 1% tolerance below, because "3 x 10^8 m/s" means c
+_SUPERSCRIPT = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹⁻", "0123456789-")
+_EXPONENT = r"(?:\^?\s*[-+]?\d+|[⁻]?[⁰¹²³⁴-⁹]+)"
+_SPEED = re.compile(
+    r"(\d+(?:\.\d+)?)"                                                  # mantissa
+    r"(?:\s*[x×*]\s*10\s*(" + _EXPONENT + r")|\s*[eE]([-+]?\d+)|([⁻]?[⁰¹²³⁴-⁹]+))?"
+    r"\s*(km/s|m/s|m\s*s\^?-1|m\s*s⁻¹)", re.I)
+
+
+def _exponent(text: str) -> int:
+    return int(text.translate(_SUPERSCRIPT).replace("^", "").strip())
+
+
+def find_superluminal_speeds(text: str) -> List[Tuple[str, str]]:
+    """Speeds written as numbers above the speed of light (phase velocities excepted). Returns (law, evidence) pairs."""
+    for m in _SPEED.finditer(text or ""):
+        value = float(m.group(1))
+        if m.group(2):
+            value *= 10 ** _exponent(m.group(2))
+        elif m.group(3):
+            value *= 10 ** int(m.group(3))
+        elif m.group(4):                      # '10¹⁰' written with superscripts: the mantissa is the base
+            value = value ** _exponent(m.group(4))
+        if m.group(5).lower() == "km/s":
+            value *= 1000
+        if value > SPEED_OF_LIGHT * 1.01 and "phase velocity" not in text[max(0, m.start() - 60):m.start()].lower():
+            return [("Speed of light in a vacuum is an absolute limit (c)",
+                     f"states a speed of {value:.3g} m/s ('{' '.join(m.group(0).split())}'), "
+                     f"{value / SPEED_OF_LIGHT:.3g} times the speed of light")]
+    return []
+
+
+def find_law_violations(text: str) -> List[Tuple[str, str]]:
+    """Every arithmetic law check in this module."""
+    return find_carnot_violations(text) + find_superluminal_speeds(text)

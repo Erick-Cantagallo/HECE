@@ -1,8 +1,22 @@
 # Example runs
 
-Two unedited runs of HECE 1.0 on an ordinary desktop: `llama3` (8B) through Ollama on a GTX 1660 SUPER (6 GB VRAM, about 78% of the model on the GPU), with live arXiv retrieval. Nothing was cherry-picked or retouched. These are the first full runs with a real model.
+Unedited runs of HECE on an ordinary desktop (GTX 1660 SUPER, 6 GB VRAM, Ollama). Nothing was cherry-picked or retouched. The first two used `llama3` (8B) with live arXiv retrieval; the third uses the current default model, `qwen3:4b-instruct-2507`, and shows the REROUTE strategy.
 
-In both runs **no hypothesis passed** the 65% screening. That is the expected behaviour with an 8B model, not a failure: the point of HECE is that the language model only *proposes*, and Python decides what counts. Each folder shows what the model proposed, which problems were proven against the text, and why every idea was rejected.
+In every run **no hypothesis passed** the 65% screening. That is expected, not a failure: the point of HECE is that the language model only *proposes*, and Python decides what counts. Each folder shows what the model proposed, which problems were proven against the text, and why every idea was rejected.
+
+## Inventor mode with REROUTE: a portal gun
+
+```bash
+hece-discover "I want to create a portal gun" --name "Portal Gun" --iterations 8 --target 1 --seed 7 --no-rag
+```
+
+[report.pdf](inventor-portal-gun/report.pdf) · [exploration-log.json](inventor-portal-gun/exploration-log.json) · [console.log](inventor-portal-gun/console.log) · 8 attempts, about 5 minutes with `qwen3:4b`
+
+A goal that runs straight into known physics, chosen on purpose. What to look at:
+
+- **All five strategies ran**: explore, recombine, postulate and three REROUTE attempts. Each REROUTE took an idea whose Critic had flagged a conflict with a law, and had to reach the same effect while keeping the law.
+- **"What would have to be invented first"** (end of the conclusion): every REROUTE declared a technology that does not exist yet, each with a numeric specification. This is HECE's answer to "what discoveries would be required to move forward".
+- **This run found a bug.** One of those "missing technologies" asks for electrons at 10^10 m/s, 33 times the speed of light, and the report lists it as if it were a path forward. That led to a numeric speed-of-light check (`lawchecks.py`): such a line is now marked as contradicting a law, and a hypothesis that states such a speed is a verified violation. The PDF here is the one from the run, before that fix.
 
 ## Classic investigation: battery energy density
 

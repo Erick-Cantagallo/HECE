@@ -112,3 +112,19 @@ def test_cache_spares_the_api_and_expires(mock_client, mock_search, mock_sleep, 
     finally:
         ScientificToolbox.cache_dir = old_dir
         ScientificToolbox.CACHE_TTL_SECONDS = 7 * 24 * 3600
+
+
+@patch('hece.tools.arxiv.Search')
+@patch('hece.tools.arxiv.Client')
+def test_search_arxiv_ranks_the_fetched_papers_by_keyword_matches(mock_client, mock_search):
+    # arXiv's relevance put a loosely related paper first; the one with every keyword in its title must win
+    def paper(title, summary, pid):
+        m = MagicMock(); m.title, m.summary, m.entry_id = title, summary, f"http://arxiv.org/abs/{pid}v1"; return m
+    inst = MagicMock(); mock_client.return_value = inst
+    inst.results.return_value = [
+        paper("Energy harvesting communications with dual batteries", "Throughput of links.", "1801.00001"),
+        paper("Lithium-sulfur batteries with high specific energy", "Energy density per kilogram of cells.", "2001.00002"),
+    ]
+    out = ScientificToolbox.search_arxiv("energy battery kilogram", max_results=1, keywords=["energy", "battery", "kilogram"])
+
+    assert "2001.00002" in out and "1801.00001" not in out

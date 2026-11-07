@@ -1,6 +1,6 @@
 # HECE/src/hece/simulation.py
 import re
-from hece.lawchecks import find_carnot_violations
+from hece.lawchecks import find_law_violations
 from hece.redflags import find_red_flags, law_level_flags
 from hece.numerics import find_numeric_inconsistencies, find_scale_mismatch
 from typing import List
@@ -17,6 +17,7 @@ class SimulationEngine:
         # hypothesis must carry a falsifiable prediction and a refutation condition.
         self.speculative = speculative
         self.PENALTY_POSTULATE = 0.10
+        self.PENALTY_MISSING_TECHNOLOGY = 0.10  # depends on something that does not exist yet
         self.PENALTY_LOGICAL_FLAW = 0.15
         self.PENALTY_UNPROVEN_PREMISE = 0.05
         # An accusation Python could not verify is the model's unproven opinion: it is shown and sends the hypothesis
@@ -57,6 +58,7 @@ class SimulationEngine:
         total_redflag_penalty = len(hypothesis.red_flags) * self.PENALTY_RED_FLAG
         total_numeric_penalty = len(hypothesis.numeric_flags) * self.PENALTY_NUMERIC
         total_postulate_penalty = len(hypothesis.postulates) * self.PENALTY_POSTULATE if self.speculative else 0.0
+        total_postulate_penalty += len(hypothesis.missing_technology) * self.PENALTY_MISSING_TECHNOLOGY
         
         total_penalty = total_logic_penalty + total_premise_penalty + total_unverified_penalty + total_redflag_penalty + total_postulate_penalty + total_numeric_penalty
         
@@ -97,8 +99,9 @@ class SimulationEngine:
     @staticmethod
     def _apply_law_checks(hyp: Hypothesis, boundaries: ConstraintContext) -> None:
         """Laws checked by arithmetic (lawchecks.py) become VERIFIED violations, with the calculation as evidence."""
-        for law, evidence in find_carnot_violations(hyp.description):
-            listed = next((c for c in boundaries.hard_constraints if "Second Law" in c), law)
+        for law, evidence in find_law_violations(hyp.description):
+            key = law.split(" (")[0].split(" in a ")[0]   # 'Second Law of Thermodynamics', 'Speed of light'
+            listed = next((c for c in boundaries.hard_constraints if key in c), law)
             if listed not in hyp.violated_hard_constraints:
                 hyp.violated_hard_constraints.append(listed)
                 hyp.violation_evidence.append(f"[checked by Python] {evidence}")
@@ -127,7 +130,8 @@ class SimulationEngine:
         return (f"AI estimate {est * 100:.0f}% -> final {hypothesis.feasibility_score * 100:.0f}% after penalties "
                 f"(logical flaws: {len(hypothesis.logical_flaws)}, assumptions: {len(hypothesis.assumptions)}, "
                 f"unverified accusations: {len(hypothesis.unverified_violations)}, red flags: {len(hypothesis.red_flags)}, numeric errors: {len(hypothesis.numeric_flags)}"
-                + (f", postulates: {len(hypothesis.postulates)}" if hypothesis.postulates else "") + "); "
+                + (f", postulates: {len(hypothesis.postulates)}" if hypothesis.postulates else "")
+                + (f", missing technologies: {len(hypothesis.missing_technology)}" if hypothesis.missing_technology else "") + "); "
                 f"below the {self.MIN_VIABILITY * 100:.0f}% threshold."
                 + (f" {len(hypothesis.unverified_violations)} Critic accusation(s) could not be verified, so the AI estimate "
                    "may reflect unproven claims; human review recommended." if hypothesis.unverified_violations else "")

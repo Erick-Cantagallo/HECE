@@ -29,6 +29,7 @@ from typing import Callable, Dict, List, Optional, Tuple
 
 from hece.agents import AgentPool, InvestigationOrchestrator, build_book
 from hece.inference import InferenceError
+from hece.redflags import law_level_flags
 from hece.candidate import (Candidate, parse_candidate, split_requirements, validate_candidate,
                             compose_description, format_postulate)
 from hece.concepts import sample_concepts, concept_category
@@ -53,7 +54,7 @@ _STOP = set("""this that with from which will would could their there these thos
 over under than then also each such only most more other same very when where while within without about because
 device system process method mechanism approach based step stage energy""".split())
 
-STRATEGIES = ("explore", "recombine", "refine", "postulate")
+STRATEGIES = ("explore", "recombine", "refine", "postulate", "reroute")
 
 
 @dataclass
@@ -69,6 +70,7 @@ class DiscoveryConfig:
     max_refinements_per_root: int = 2   # a chain x -> x1 -> x2 is cut after this many refinements
     near_miss_score: float = 0.40
     postulate_after_failures: int = 3
+    reroute: bool = True                # an idea stopped by a law gets one attempt at an alternative path
     novelty_threshold: float = 0.55
     expert_temperature: float = 0.9
     format_retries: int = 2
@@ -95,7 +97,7 @@ class Attempt:
 
 _HYP_FIELDS = ["id", "title", "family", "strategy", "iteration", "parent_id", "target", "concepts", "description",
                "postulates", "prediction", "refutation", "assumptions", "logical_flaws", "red_flags",
-               "violated_hard_constraints", "violation_evidence", "numeric_flags", "confirmation_scores", "unverified_violations", "speculative_notes",
+               "violated_hard_constraints", "violation_evidence", "route", "missing_technology", "numeric_flags", "confirmation_scores", "unverified_violations", "speculative_notes",
                "citations", "ai_estimate", "feasibility_score", "status", "needs_human_review"]
 
 
@@ -263,9 +265,30 @@ class DiscoveryEngine:
                 and per_root.get(root_index(a, attempts), 0) < self.cfg.max_refinements_per_root]
         return max(pool, key=lambda a: a.score or 0) if pool else None
 
+    def law_blocked(self, attempts: List[Attempt]) -> Optional[Attempt]:
+        """
+        Most recent idea that ran into a physical law and has not had its alternative-path attempt yet.
+        Proven conflicts (verified violation, law-level red flag) come first; then conflicts the Critic suspected
+        but could not prove. A suspicion only chooses the next strategy: it never changes a score.
+        """
+        rerouted = {a.parent_index for a in attempts if a.strategy == "reroute"}
+        pool = [a for a in attempts
+                if a.outcome == "rejected" and a.hypothesis is not None and a.strategy != "reroute"
+                and a.index not in rerouted]
+        proven = [a for a in pool if a.hypothesis.violated_hard_constraints or law_level_flags(a.hypothesis.red_flags)]
+        if proven:
+            return proven[-1]
+        # Most rejected ideas carry some suspicion: give them every third slot so recombine/refine/postulate still run.
+        suspected = [a for a in pool if a.hypothesis.unverified_violations]
+        return suspected[-1] if suspected and len(attempts) % 3 == 1 else None
+
     def choose_strategy(self, i: int, attempts: List[Attempt]) -> Tuple[str, Optional[Attempt]]:
         if i == 0:
             return "explore", None
+        # The goal: an idea that would break a law is neither discarded nor allowed; look for another path first.
+        blocked = self.law_blocked(attempts) if self.cfg.reroute else None
+        if blocked is not None and attempts[-1].strategy != "reroute":
+            return "reroute", blocked
         near = self.best_near_miss(attempts)
         if near is not None and i % 3 == 2:
             return "refine", near
@@ -303,6 +326,10 @@ class DiscoveryEngine:
                         "REDUCES TO KNOWN PHYSICS WHEN: the coupling constant tends to zero\n")
         else:
             quantity = "(Do NOT postulate new quantities or laws in this attempt: use known physics only.)\n"
+        if strategy == "reroute":
+            quantity += ("ROUTE: <which law stopped the earlier idea, and how this version keeps it true (at least 12 words)>\n"
+                         "REQUIRES: <a technology that does not exist yet> | SPEC: <the numeric target it must reach>   "
+                         "(one line per missing technology; omit the line if none is needed)\n")
         return ("OUTPUT FORMAT (start each line with exactly these labels; no greetings, no markdown):\n"
                 "TITLE: <short name>\n"
                 "FAMILY: <2 to 5 words naming the core mechanism>\n"
@@ -348,6 +375,24 @@ class DiscoveryEngine:
                     "If a problem cannot be solved without abandoning the idea, choose a different mechanism instead.\n"
                     "Write the COMPLETE candidate again in the required format: describe every component in full and never refer "
                     "to the earlier version.\n"
+                    f"EARLIER CANDIDATE:\n{h.description[:1800]}\n")
+        elif strategy == "reroute" and parent is not None and parent.hypothesis is not None:
+            h = parent.hypothesis
+            barriers = list(h.violation_evidence) or list(h.violated_hard_constraints)
+            barriers += law_level_flags(h.red_flags)
+            barriers = barriers or [f"(suspected by the Critic, not proven) {u}" for u in h.unverified_violations]
+            body = ("STRATEGY: REROUTE. The earlier candidate below ran into a physical law:\n- "
+                    + "\n- ".join(b[:300] for b in barriers[:4]) + "\n"
+                    "Do NOT give up what it was trying to achieve, and do NOT ignore the law. Find an ALTERNATIVE PATH "
+                    "that reaches the same effect while the law stays true, using ONE of these routes:\n"
+                    "(a) PAY THE COST: name the external source of energy, work or entropy export the law requires, "
+                    "and estimate with numbers how much is needed;\n"
+                    "(b) MISSING TECHNOLOGY: rely on a component that does not exist yet, described in a REQUIRES line "
+                    "with a numeric specification;\n"
+                    "(c) CHANGE THE ASSUMPTION: change the operating condition the law's limit depends on (temperature, "
+                    "scale, number of stages, ...) and show with numbers that the new limit allows the effect.\n"
+                    "Say which route you took in the ROUTE line. Write the COMPLETE candidate again in the required "
+                    "format and never refer to the earlier version.\n"
                     f"EARLIER CANDIDATE:\n{h.description[:1800]}\n")
         elif strategy == "postulate":
             body = ("STRATEGY: POSTULATE. Earlier attempts hit these barriers:\n" + self._barriers(attempts) + "\n"
@@ -451,6 +496,7 @@ class DiscoveryEngine:
             h.prediction, h.refutation = cand.prediction, cand.refutation
             h.speculative_notes = list(h.speculative_notes) + notes
             h.target = target_text
+            h.route, h.missing_technology = cand.route, list(cand.requires)
 
         decorate(hyp)
         evaluated = self.sim.evaluate([hyp], bnd)[0]

@@ -23,7 +23,7 @@ from dotenv import load_dotenv
 from hece import __version__
 from hece.agents import AgentPool, InvestigationOrchestrator
 from hece.constraints import ConstraintEngine
-from hece.inference import InferenceError
+from hece.inference import DEFAULT_MODEL, InferenceError
 from hece.interpreter import GoalInterpreter
 from hece.pipeline import offline_context
 from hece.simulation import SimulationEngine
@@ -166,7 +166,7 @@ def main(argv=None) -> int:
             print("Error: no case matches --only.", file=sys.stderr)
             return 1
 
-    model = os.getenv("MODEL_NAME", "llama3")
+    model = os.getenv("MODEL_NAME", DEFAULT_MODEL)
     print(f"HECE {__version__} screening benchmark: {len(cases)} case(s) x {args.repeat}, model {model}\n")
     try:
         results = run_benchmark(cases, max(1, args.repeat))
