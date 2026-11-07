@@ -1,0 +1,89 @@
+{
+  "description": "Held-out screening cases, written after the filter and committed BEFORE the first run; the filter must not be tuned to them. Violations are phrased without the trigger words the red-flag screen looks for, and the sound cases include wording that a naive filter would wrongly flag (no electricity, efficiency limits, large savings).",
+  "cases": [
+    {
+      "id": "good-radiative-cooling",
+      "expected": "pass",
+      "why": "Daytime radiative cooling emits heat through the 8-13 micrometre atmospheric window to cold space; around 100 W/m2 of net cooling has been measured without power.",
+      "goal": "How can buildings be cooled with less electricity?",
+      "hypothesis": "Passive daytime radiative cooling roof panels. A multilayer film reflects about 97 percent of sunlight while emitting strongly between 8 and 13 micrometres, the wavelength band in which the atmosphere is nearly transparent. The roof therefore radiates heat directly to cold outer space, which is at about 3 K, while absorbing almost no solar energy. Measurements of such films report net cooling powers of around 100 W per square metre and surface temperatures 5 C below the ambient air at midday, and the panels need no electricity because the heat flows from the warm roof to the much colder sky. Prediction: on a clear summer day a panel of 1 square metre stays at least 3 C below the air temperature under full sun."
+    },
+    {
+      "id": "good-ammonia-catalyst",
+      "expected": "pass",
+      "why": "A more active catalyst lets the Haber-Bosch reaction reach a useful rate at lower temperature, where the equilibrium yield is higher; it does not change the equilibrium itself.",
+      "goal": "How can fertiliser production use less energy?",
+      "hypothesis": "Lower-temperature ammonia synthesis with a ruthenium catalyst. The Haber-Bosch process runs at about 450 C and 200 bar because iron catalysts are too slow at lower temperatures, even though the equilibrium yield of ammonia is higher when it is colder. A promoted ruthenium catalyst on a basic support is active enough to reach a useful reaction rate at about 350 C. At the same pressure the equilibrium ammonia fraction rises from roughly 15 to about 30 percent, so less gas has to be recycled and compressed. The catalyst only speeds up the approach to equilibrium; it does not shift the equilibrium. Prediction: a pilot reactor at 350 C and 150 bar reaches at least 90 percent of the equilibrium ammonia fraction with 20 percent less compression energy per tonne."
+    },
+    {
+      "id": "good-regenerative-braking",
+      "expected": "pass",
+      "why": "Electric vehicles recover a large part of braking energy through the motor acting as a generator; round-trip efficiency of 60-70 percent is typical.",
+      "goal": "How can city buses use less energy?",
+      "hypothesis": "Regenerative braking in battery-electric city buses. In stop-and-go traffic a bus of 18 tonnes brakes from 50 km per hour many times per hour, and each stop dissipates about 1.7 MJ of kinetic energy as heat in friction brakes. If the traction motor runs as a generator during braking, it converts this kinetic energy back into electricity and charges the battery. Losses in the motor, inverter and battery limit the round trip to about 60 to 70 percent, so roughly 1 MJ is returned per stop. On a route with 30 stops per hour this saves 25 to 35 percent of the traction energy. Prediction: logging energy use on the same route with regeneration switched on and off shows a reduction of at least 20 percent."
+    },
+    {
+      "id": "good-exhaust-thermoelectric",
+      "expected": "pass",
+      "why": "Thermoelectric generators on exhaust reach a few percent efficiency, far below the Carnot limit of about 42 percent between 600 K and 350 K.",
+      "goal": "How can waste heat from cars be turned into electricity?",
+      "hypothesis": "Thermoelectric generator on the exhaust pipe. Exhaust gas leaves the engine at about 600 K while the engine coolant is at about 350 K. Modules of bismuth telluride and skutterudite placed between the exhaust pipe and a coolant jacket turn part of the heat flow into electricity through the Seebeck effect. With a figure of merit ZT near 1, the module reaches a thermal efficiency of about 5 percent, well below the Carnot limit of about 42 percent for these temperatures. Recovering 5 percent of a 20 kW exhaust heat flow gives about 1 kW of electricity, enough to replace much of the alternator load. Prediction: a test bench at 600 K and 350 K measures between 600 W and 1200 W of electrical output from a 20 kW heat flow."
+    },
+    {
+      "id": "good-led-lighting",
+      "expected": "pass",
+      "why": "LED lamps produce the same light with about 80 to 85 percent less electricity than incandescent lamps; it is measured in luminous efficacy.",
+      "goal": "How can street lighting use less electricity?",
+      "hypothesis": "Replacing sodium and incandescent street lamps with LEDs. An incandescent lamp produces about 15 lumens per watt because most of its output is infrared radiation, and high-pressure sodium lamps produce about 100 lumens per watt with poor colour. White LEDs now reach 150 to 200 lumens per watt and can direct their light downwards with optics, so less light is wasted above the horizon. Replacing incandescent lamps saves about 85 percent of the electricity for the same light, and replacing sodium lamps saves 40 to 60 percent once the better directionality is included. Prediction: a street retrofitted with LEDs keeps the same measured illuminance on the road while its metered electricity use falls by at least 40 percent."
+    },
+    {
+      "id": "good-nitrogen-fixing-cereals",
+      "expected": "pass",
+      "why": "Engineering symbiotic nitrogen fixation into cereals is an active, legitimate research programme; it needs energy from the plant's sugars, as in legumes.",
+      "goal": "How can crops need less synthetic fertiliser?",
+      "hypothesis": "Cereals that host nitrogen-fixing bacteria in root nodules. Legumes such as soybeans form nodules in which bacteria convert nitrogen from the air into ammonia using the enzyme nitrogenase, powered by sugars from the plant, at a cost of about 16 ATP molecules per molecule of nitrogen fixed. Transferring the signalling genes that let legumes recognise these bacteria into maize would let maize roots form similar nodules. The plant would pay for the fixed nitrogen with part of its photosynthesis, so yields might fall by a few percent, but the need for synthetic fertiliser would drop. Prediction: engineered maize grown without nitrogen fertiliser forms nodules and obtains at least 20 percent of its nitrogen from the air, measured by nitrogen-15 isotope dilution."
+    },
+    {
+      "id": "bad-wind-above-betz",
+      "expected": "fail",
+      "why": "No wind turbine can extract more than 59.3 percent of the kinetic energy of the wind passing through its rotor (Betz limit).",
+      "goal": "How can wind turbines produce more electricity?",
+      "hypothesis": "Optimised blade profile for a three-blade wind turbine. Using a new aerofoil designed with computational fluid dynamics and a tip-speed ratio of 8, the rotor captures 80 percent of the kinetic energy of the wind that flows through its swept area, compared with about 45 percent for current turbines. For a rotor of 150 metres diameter in a wind of 10 metres per second, the wind carries about 10.8 MW through the swept area, so the new rotor delivers about 8.6 MW instead of 4.9 MW. The blades are made of carbon fibre to keep their mass low at the higher loads. Prediction: a field test measures a power coefficient of at least 0.75 over a range of wind speeds between 8 and 12 metres per second."
+    },
+    {
+      "id": "bad-refrigerator-cop",
+      "expected": "fail",
+      "why": "Between 5 C inside and 35 C outside the Carnot COP of a refrigerator is about 9.3; a COP of 20 violates the second law.",
+      "goal": "How can refrigerators use less electricity?",
+      "hypothesis": "High-performance household refrigerator with a variable-speed compressor. The cabinet is kept at 5 C in a kitchen at 35 C. A variable-speed compressor, an ejector that recovers expansion work, and a larger microchannel condenser together raise the coefficient of performance to 20, so the refrigerator removes 20 kWh of heat from the cabinet for every kWh of electricity it uses. Current models reach a COP of about 2 to 3 under these conditions. A typical refrigerator that uses 300 kWh per year would then use about 40 kWh per year. Prediction: a laboratory test at 5 C inside and 35 C ambient measures a COP of at least 18 over a full 24-hour cycle."
+    },
+    {
+      "id": "bad-catalyst-beyond-equilibrium",
+      "expected": "fail",
+      "why": "A catalyst speeds up the approach to equilibrium but cannot change the equilibrium composition at a given temperature and pressure.",
+      "goal": "How can fertiliser production use less energy?",
+      "hypothesis": "Equilibrium-shifting catalyst for ammonia synthesis. A new iron-cobalt nanoparticle catalyst binds nitrogen so strongly that it pulls the Haber-Bosch reaction past its normal equilibrium point. At 450 C and 200 bar the equilibrium ammonia fraction is about 15 percent, but with this catalyst the reactor outlet reaches 60 percent ammonia at the same temperature and pressure, because the catalyst surface keeps converting the remaining nitrogen and hydrogen. This removes most of the recycle loop and saves about half of the compression energy. Prediction: a laboratory reactor at 450 C and 200 bar, operated until the composition stops changing, shows an ammonia fraction of at least 50 percent at the outlet."
+    },
+    {
+      "id": "bad-concentrator-above-sun",
+      "expected": "fail",
+      "why": "Passive optics cannot heat a target above the temperature of the source (about 5800 K for the Sun); 8000 K violates the second law.",
+      "goal": "How can solar energy produce very high temperatures for industry?",
+      "hypothesis": "Multi-stage solar concentrator for ultra-high-temperature processing. A field of mirrors focuses sunlight onto a secondary compound parabolic concentrator, and a third stage of nested lenses focuses it again onto a small tungsten target. Each stage multiplies the concentration, so the total concentration reaches 200000 suns and the target is heated to 8000 K using only sunlight and passive optics. At that temperature the target can dissociate carbon dioxide and water directly into fuels without any catalyst. Prediction: a pyrometer pointed at the tungsten target records a steady temperature of at least 7500 K while the system is illuminated by direct sunlight alone."
+    },
+    {
+      "id": "bad-below-landauer",
+      "expected": "fail",
+      "why": "Erasing one bit at temperature T must dissipate at least kT ln 2 (Landauer's principle); 0.001 kT per erased bit at room temperature is impossible.",
+      "goal": "How can computers use less energy?",
+      "hypothesis": "Ultra-low-energy memory erasure with nanomagnets. Each bit is stored in the magnetisation of a nanomagnet of 50 nanometres. A carefully timed sequence of spin-polarised current pulses resets the magnet to the zero state while dissipating only 0.001 kT of energy per erased bit at room temperature, about 4e-24 J. Because erasing bits is a large part of the energy used by processors, a chip built this way would use about one thousandth of the energy of current chips for the same work. The magnets keep their state for years because the energy barrier is 60 kT. Prediction: calorimetry on an array of 1 billion nanomagnets measures a heat release below 1e-14 J per reset cycle of the whole array at 300 K."
+    },
+    {
+      "id": "bad-water-wheel-loop",
+      "expected": "fail",
+      "why": "The wheel cannot deliver more energy than the pump needs to lift the same water back up; a closed loop with surplus output violates conservation of energy.",
+      "goal": "How can a remote village get electricity?",
+      "hypothesis": "Closed-loop hydro wheel for villages without rivers. Water stored in an upper tank falls 10 metres onto a large overshot wheel, which turns at a steady speed and drives two machines at once: a piston pump that lifts the same water back into the upper tank, and a generator. Because the wheel has a large diameter and the pump uses a long lever, the wheel delivers more power than the pump needs, and the difference, about 5 kW, goes to the village through the generator. The water circulates in the loop indefinitely and only a little has to be topped up to replace evaporation. Prediction: once filled and started, the installation delivers 5 kW to the village continuously for one month."
+    }
+  ]
+}
