@@ -5,6 +5,7 @@ from typing import Optional, Sequence
 
 from dotenv import load_dotenv
 
+from hece import __version__
 from hece.interpreter import GoalInterpreter
 from hece.knowledge import KnowledgeEngine
 from hece.constraints import ConstraintEngine
@@ -12,11 +13,13 @@ from hece.simulation import SimulationEngine
 from hece.agents import AgentPool, InvestigationOrchestrator
 from hece.inference import InferenceError
 from hece.paper import PaperGenerator
+from hece.conclusion import build_conclusion
 
 load_dotenv()
 
 DEFAULT_PROJECT = "Investigation"
 DEFAULT_HYPOTHESES = 2
+NEAR_MISSES_SHOWN = 3
 
 def run_hece(project_name: str, goal_description: str, target_count: int):
     print(f"\n🧠 HECE ENGINE INITIALIZED - PROJECT: {project_name.upper()}")
@@ -25,28 +28,70 @@ def run_hece(project_name: str, goal_description: str, target_count: int):
 
     interpreter = GoalInterpreter()
     analysis = interpreter.analyze(goal_description)
-
+    
     print(f"\n[+] Goal ID: {analysis.goal.id}")
     domain_str = analysis.goal.domain or "general"
     print(f"[+] Domain Detected: {domain_str.upper()}")
     print(f"[+] Complexity Level: {analysis.goal.complexity_level}/10")
-
+    
     print("\n📚 Status: Retrieving Scientific Context & Literature...")
     knowledge_engine = KnowledgeEngine()
     context = knowledge_engine.retrieve_context(analysis)
-
+    
     print("\n🚧 Status: Establishing Scientific Boundaries...")
     constraint_engine = ConstraintEngine()
     boundaries = constraint_engine.process_constraints(analysis, context)
-
-    print(f"\n🤖 Status: Activating Multi-Agent Investigation (Target: {target_count} Hypotheses)...")
+    
+    # Initialize the core engines before the loop
     pool = AgentPool()
     orchestrator = InvestigationOrchestrator(pool)
-    hypotheses = orchestrator.investigate(analysis, context, boundaries, target_count=target_count)
-
-    print("\n🔬 Status: Running Hypothesis Evaluation & Simulation...")
     simulation_engine = SimulationEngine()
-    evaluated_hypotheses = simulation_engine.evaluate(hypotheses, boundaries)
+    
+    print(f"\n🤖 Status: Activating Multi-Agent Investigation (Target: {target_count} Valid Hypotheses)...")
+    print("🎲 [MONTE CARLO SAMPLING ACTIVE: Minimum 65% Viability & 0 Broken Laws]")
+    
+    # --- MONTE CARLO (REJECTION SAMPLING) LOOP ---
+    evaluated_hypotheses = []
+    rejected_hypotheses = []  # kept so the report can still show the best near misses
+    attempts = 0
+    # Safeguard against infinite loops: we allow 4 attempts per requested hypothesis
+    max_attempts = target_count * 4 
+
+    while len(evaluated_hypotheses) < target_count and attempts < max_attempts:
+        attempts += 1
+        print(f"\n   === Monte Carlo Attempt {attempts}/{max_attempts} ===")
+        
+        # 1. Generate exactly 1 hypothesis candidate
+        hypotheses_batch = orchestrator.investigate(analysis, context, boundaries, target_count=1)
+        
+        if not hypotheses_batch:
+            print("   [!] Generation failed due to Agent collapse. Retrying...")
+            continue
+            
+        # 2. Evaluate the candidate immediately
+        evaluated_batch = simulation_engine.evaluate(hypotheses_batch, boundaries)
+        candidate = evaluated_batch[0]
+        
+        # Extract metrics for the deterministic check
+        score = candidate.feasibility_score * 100
+        broken_laws = len(candidate.violated_hard_constraints)
+        
+        print(f"   📊 [Simulation] Score: {score:.0f}% | Broken Laws: {broken_laws}")
+        
+        # 3. Apply Rejection Sampling rules (the SimulationEngine already set the status)
+        if candidate.status != "active":
+            print(f"   ❌ [REJECTED]: {simulation_engine.rejection_reason(candidate)}")
+            rejected_hypotheses.append(candidate)
+            continue
+
+        # 4. If it survives the filters, add it to the final valid list
+        print("   ✅ [ACCEPTED]: Hypothesis passed all strict viability thresholds!")
+        evaluated_hypotheses.append(candidate)
+
+    if not evaluated_hypotheses:
+        print("\n[!] CRITICAL WARNING: Monte Carlo pipeline failed to find any viable hypotheses within the iteration limits.")
+        # Show the best near misses (clearly marked REJECTED, with the reason) instead of an empty report.
+        evaluated_hypotheses = sorted(rejected_hypotheses, key=lambda h: h.feasibility_score, reverse=True)[:NEAR_MISSES_SHOWN]
 
     print("\n[+] EVALUATION RESULTS:")
     for i, hyp in enumerate(evaluated_hypotheses, 1):
@@ -55,16 +100,7 @@ def run_hece(project_name: str, goal_description: str, target_count: int):
 
     # --- SPRINT 10 (Credibility Update): DEEP CONCLUSION SYNTHESIS ---
     print("\n🧠 Status: Synthesizing deep scientific conclusion...")
-    if evaluated_hypotheses:
-        hypotheses_text = " | ".join([f"Hypothesis {i+1}: {h.description} (Score: {h.feasibility_score})" for i, h in enumerate(evaluated_hypotheses)])
-        conclusion_prompt = f"""
-        Analyze the following {len(evaluated_hypotheses)} evaluated hypotheses: {hypotheses_text}.
-        Write a comprehensive, deep comparative scientific conclusion.
-        Which approach is most promising? What are the critical roadblocks or physics violations?
-        """
-        deep_conclusion = pool.synthesizer.perform_task(conclusion_prompt, "Write 2 to 3 insightful paragraphs. DO NOT use markdown bolding (**) or quotes.")
-    else:
-        deep_conclusion = "No valid hypotheses were generated to form a conclusion."
+    deep_conclusion = build_conclusion(pool, evaluated_hypotheses)
 
     print("\n📑 Status: Publishing Scientific Paper (PDF)...")
     pdf_path = PaperGenerator.generate_pdf(project_name, analysis, context, boundaries, evaluated_hypotheses, deep_conclusion)
@@ -83,6 +119,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("goal", nargs="?", help="scientific goal to investigate (omit it to answer the prompts interactively)")
     parser.add_argument("-p", "--project", help=f"project name used in the PDF (default: {DEFAULT_PROJECT})")
     parser.add_argument("-n", "--hypotheses", type=int, help=f"how many hypotheses to generate (default: {DEFAULT_HYPOTHESES})")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
 def _ask_hypothesis_count() -> int:

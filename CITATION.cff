@@ -4,7 +4,7 @@ authors:
   - family-names: "Cantagallo"
     given-names: "Erick"
 title: "HECE: Hypothesis & Creativity Engine"
-version: 1.0.0-beta.2
-date-released: 2026-11-05
+version: 1.0.0
+date-released: 2026-11-07
 repository-code: "https://github.com/Erick-Cantagallo/HECE"
 license: MIT

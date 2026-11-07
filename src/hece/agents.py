@@ -1,9 +1,12 @@
 # HECE/src/hece/agents.py
 import os
 import json
+import re
 import uuid
-from typing import List, Any
+from textwrap import shorten
+from typing import List, Any, Optional
 from hece.inference import InferenceEngine
+from hece.verification import split_violations, verified_evidence, filter_citations, parse_flaws, resolve_numbered_refs, drop_goal_restatements, split_law_flaws
 from hece.core.models.base import Hypothesis, GoalAnalysis, KnowledgeContext, ConstraintContext
 
 def _ensure_list(value: Any) -> List[str]:
@@ -15,9 +18,14 @@ def _ensure_list(value: Any) -> List[str]:
     else:
         raw_list = []
         
-    # FIX: The "None" Trap. Ignore strings where the AI conversationalizes an empty response.
     ignore_words = ["none", "none.", "n/a", "nil", "nothing", "empty", "no", "false"]
-    clean_list = [item for item in raw_list if item.strip().lower() not in ignore_words]
+    null_like = re.compile(
+        r"^(?:none|n/a|nil|nothing|not applicable)\b.*$"
+        r"|^(?:there (?:is|are) )?no (?:\w+ ){0,2}(?:contradictions?|flaws?|errors?|issues?|problems?|violations?|inconsisten\w+)(?: \w+){0,3}\.?$",
+        re.I)
+    clean_list = [item for item in raw_list
+                  if item.strip() and re.search(r"\w", item) and item.strip().lower() not in ignore_words
+                  and not null_like.match(item.strip())]
     
     return clean_list
 
@@ -30,142 +38,239 @@ def _max_retries() -> int:
     except ValueError:
         return DEFAULT_MAX_RETRIES
 
+def build_book(context: KnowledgeContext) -> str:
+    """The shared context ('THE BOOK') handed to every agent."""
+    return f"KNOWN FACTS: {' | '.join(context.known_facts)}\nLAWS: {' | '.join(context.domain_laws)}"
+
 class Agent:
     def __init__(self, name: str, role_description: str):
         self.name = name
         self.role = role_description
         self.inference = InferenceEngine(model_name=os.getenv("MODEL_NAME", "llama3"))
 
-    def perform_task(self, task: str, context: str) -> str:
-        prompt = f"""
+    def perform_task(self, task: str, context: str, creative: bool = False, temperature: Optional[float] = None) -> str:
+        if creative:
+            # Inventor mode: the model may go beyond the context, but must follow the output format.
+            prompt = f"""
         You are {self.name}. Your role is: {self.role}
         
-        CONTEXT: {context}
+        BACKGROUND (laws and any retrieved literature): {context}
+        
+        TASK: {task}
+        """
+        else:
+            prompt = f"""
+        You are {self.name}. Your role is: {self.role}
+        
+        CONTEXT (THE BOOK): {context}
         
         TASK: {task}
         
-        Provide a concise, expert-level response.
+        Provide a concise, expert-level response based ONLY on the context provided and scientific laws.
         """
+        if temperature is not None:
+            return self.inference.ask(prompt, temperature=temperature)
         return self.inference.ask(prompt)
 
 class AgentPool:
     def __init__(self):
-        self.expert = Agent("ScientificExpert", "You are an expert in the user's specific scientific domain. You provide rigorous, speculative hypotheses.")
-        self.critic = Agent("ScientificCritic", "You are a harsh scientific critic. You challenge hypotheses for logical flaws and constraint violations.")
-        self.synthesizer = Agent("Synthesizer", "You are a scientific writer. You combine expert insights and criticism into a final, structured summary.")
+        self.expert = Agent("ScientificExpert", "You propose highly detailed scientific hypotheses.")
+        self.inventor = Agent(
+            "Inventor",
+            "You are an inventor-scientist. You combine unrelated ideas from science, nature and engineering into "
+            "new mechanisms that respect the listed laws. You never claim that an idea works: you state a measurable "
+            "prediction and what result would prove it wrong.")
+        self.critic = Agent("ScientificCritic", "You objectively judge hypotheses against real-world scientific literature and absolute physics constraints.")
+        self.synthesizer = Agent("Synthesizer", "You structure scientific critiques into rigid JSON architectures.")
+        self.writer = Agent("ScientificWriter", "You write clear plain-prose scientific summaries.")
 
 class InvestigationOrchestrator:
-    """
-    Coordinates the AgentPool to generate, critique, and synthesize hypotheses.
-    Includes a self-healing Auto-Retry mechanism for JSON parsing failures.
-    """
     def __init__(self, pool: AgentPool):
         self.pool = pool
+
+    JUDGE_TEMPERATURE = 0.1   # judges must be consistent: the same idea should not get 0 flaws once and 5 the next time
+
+    def _synthesize(self, raw_hypothesis: str, critique: str, temperature: Optional[float] = None) -> Optional[dict]:
+        """Synthesizer call with up to MAX_RETRIES attempts (default 3). Returns the parsed JSON dict (with a score) or None."""
+        max_retries = _max_retries()
+        error_feedback = ""
+        for attempt in range(1, max_retries + 1):
+            if attempt > 1:
+                print(f"       [Retry {attempt}/{max_retries}] Correcting JSON format...")
+
+            task_synth = f"""
+                Original Hypothesis: {raw_hypothesis}
+                Critic's Judgment: {critique}
+                
+                TASK: Extract the structured fields below from the hypothesis and the Critic's judgment, and assign a realistic 'ai_viability_score' (0.0 to 1.0). Do NOT rewrite the hypothesis.
+                """
+
+            # Explicitly instructing the Synthesizer how to handle "NO LAWS BROKEN".
+            json_format = f"""
+                CRITICAL INSTRUCTION: Return ONLY a valid JSON object.
+                
+                FIELD INSTRUCTIONS:
+                - "assumptions": List unproven assumptions. 
+                - "required_conditions": List conditions needed.
+                - "violated_hard_constraints": ONLY copy violations the Critic proved with LAW, QUOTE and MECHANISM. Copy them verbatim. If the Critic said "NO LAWS BROKEN", this array MUST BE EMPTY [].
+                - "citations": List the references used.
+                - "ai_viability_score": A float between 0.0 and 1.0 representing the AI's estimation of feasibility.
+                
+                JSON SCHEMA REQUIRED:
+                {{
+                    "assumptions": ["string"],
+                    "required_conditions": ["string"],
+                    "violated_hard_constraints": [{{"law": "string", "quote": "string", "mechanism": "string"}}],
+                    "citations": ["string"],
+                    "ai_viability_score": 0.0
+                }}
+                {error_feedback}
+                """
+
+            final_output = self.pool.synthesizer.perform_task(task_synth, json_format,
+                                                               temperature=temperature if temperature is not None else self.JUDGE_TEMPERATURE)
+
+            try:
+                start_idx = final_output.find('{')
+                end_idx = final_output.rfind('}')
+                if start_idx == -1 or end_idx == -1 or end_idx <= start_idx:
+                    raise ValueError("Invalid JSON format.")
+
+                clean_json = final_output[start_idx:end_idx+1]
+                try:
+                    data = json.loads(clean_json, strict=False)
+                except json.JSONDecodeError:
+                    clean_json = clean_json.replace('\\', '\\\\').replace('\n', ' ')
+                    data = json.loads(clean_json, strict=False)
+
+                if "ai_viability_score" not in data:
+                    raise ValueError("Missing 'ai_viability_score'.")  # triggers a retry instead of a silent 0.0
+                data["ai_viability_score"] = min(1.0, max(0.0, float(data["ai_viability_score"])))
+                return data
+            except Exception as e:
+                error_feedback = f"\nERROR: Fix JSON formatting. Reason: {str(e)}"
+        return None
+
+    def assess(self, raw_hypothesis: str, analysis: GoalAnalysis, context: KnowledgeContext,
+               boundaries: ConstraintContext, speculative: bool = False, target: str = "",
+               judge_temperature: Optional[float] = None) -> Optional[Hypothesis]:
+        """
+        Critic (laws) + Critic (internal flaws) + Synthesizer (JSON) for ONE hypothesis text.
+        Returns an un-evaluated Hypothesis (status 'speculative'), or None if the Synthesizer collapsed.
+        `speculative=True` tells the Critic that postulating NEW quantities/laws is allowed by design.
+        `target` is the physical requirement the hypothesis claims to address (inventor mode).
+        """
+        the_book = build_book(context)
+        judge = judge_temperature if judge_temperature is not None else self.JUDGE_TEMPERATURE
+
+        print("    -> [Critic] Judging the invention against the literature...")
+        # Anti-Hallucination Prompting: force the SLM to be objective, not sycophantic.
+        speculative_note = ""
+        if speculative:
+            speculative_note = (
+                "\n            NOTE: This idea may postulate a NEW physical quantity or law on purpose. Do not report a violation "
+                "just because something is new. Report a violation only if the mechanism contradicts a listed law "
+                "(for example it creates net energy) or contradicts the postulate's own 'reduces to known physics' condition.\n")
+        task_critic = f"""
+            Review this hypothesis: {raw_hypothesis}
+
+            CHECKLIST OF LAWS: {boundaries.hard_constraints}
+            {speculative_note}
+            Most hypotheses violate NONE of these laws. Ignore any law that is not relevant.
+            Report a violation ONLY if you can provide all three items:
+            LAW: copy the law text exactly from the checklist.
+            QUOTE: copy at least 4 consecutive words from the hypothesis that break it.
+            MECHANISM: explain in at least 15 words why that quote breaks the law.
+            If you cannot provide all three, answer exactly: NO LAWS BROKEN.
+            """
+        critique = self.pool.critic.perform_task(task_critic, the_book, temperature=judge)
+
+        print("    -> [Critic] Checking internal consistency...")
+        extra_flaw = (" (4) a PREDICTION that known physics would also make, so it cannot tell the idea apart; "
+                      "(6) a setup that could not be built in a laboratory (for example one that needs a star or a black hole).") if speculative else ""
+        target_flaw = ""
+        if target:
+            target_flaw = (f" (5) the PREDICTION would not show that the TARGET REQUIREMENT is met even if it were observed; "
+                           f"(7) the mechanism assumes as a given ingredient the very thing the TARGET REQUIREMENT asks to achieve (circular)."
+                           f"\n            TARGET REQUIREMENT: {target}")
+        task_flaws = f"""
+            Review this hypothesis for INTERNAL logical problems only: {raw_hypothesis}
+
+            Look for: (1) statements that contradict each other, (2) a mechanism step that is asserted
+            without any physical explanation, (3) a claim that contradicts a law the text itself cites.{extra_flaw}{target_flaw}
+            Most hypotheses have between 0 and 3 real problems. Do not invent problems.
+            For each problem write ONE line in exactly this format:
+            FLAW: <one sentence> | QUOTE: <at least 4 consecutive words copied from the hypothesis>
+            If there are none, answer exactly: NO FLAWS
+            """
+        flaw_review = self.pool.critic.perform_task(task_flaws, the_book, temperature=judge)
+        # only flaws whose quote exists in the text; flaws that accuse a physical law are law accusations
+        flaws, law_flaws = split_law_flaws(parse_flaws(flaw_review, raw_hypothesis))
+
+        print("    -> [Synthesizer] Classifying and assigning AI Viability Score...")
+        data = self._synthesize(raw_hypothesis, critique, judge)
+        if data is None:
+            print("[ERROR] Assessment failed: the Synthesizer could not produce valid JSON.")
+            return None
+
+        description = raw_hypothesis.strip()  # the Expert text itself, never rewritten by the Synthesizer
+        claims = data.get("violated_hard_constraints", [])
+        claim_text = f"{raw_hypothesis} {description}"
+        verified, unverified = split_violations(claims, claim_text, boundaries.hard_constraints)
+        evidence = verified_evidence(claims, claim_text, boundaries.hard_constraints)
+        unverified = unverified + [f"(law cited in the flaw review, not verified) {shorten(f.split(' (quote:')[0], 200, placeholder='...')}" for f in law_flaws]
+
+        notes: List[str] = []
+        if not verified and len(unverified) >= 3:
+            # The Critic accused (almost) every law without proof: its mood must not set the score.
+            redo = self._synthesize(raw_hypothesis, "NO LAWS BROKEN. (The Critic's earlier accusations could not be verified and were discarded.)", judge)
+            if redo is not None:
+                notes.append(f"AI estimate recomputed: {len(unverified)} law accusations could not be verified and were discarded")
+                data = redo
+
+        ai_score = data["ai_viability_score"]
+        cits = filter_citations(_ensure_list(data.get("citations", [])), the_book)
+        for ref in resolve_numbered_refs(description, the_book):
+            if ref not in cits:
+                cits.append(ref)
+        return Hypothesis(
+            id=str(uuid.uuid4()),
+            goal_id=analysis.goal.id,
+            description=description,
+            assumptions=drop_goal_restatements(_ensure_list(data.get("assumptions", [])), analysis.goal.description),
+            required_conditions=_ensure_list(data.get("required_conditions", [])),
+            violated_hard_constraints=verified,
+            violation_evidence=evidence,
+            unverified_violations=unverified,
+            needs_human_review=bool(unverified or verified),
+            logical_flaws=flaws,
+            citations=cits,
+            speculative_notes=notes,
+            feasibility_score=ai_score,
+            ai_estimate=ai_score,
+            confidence=0.5,
+            status="speculative"
+        )
 
     def investigate(self, analysis: GoalAnalysis, context: KnowledgeContext, boundaries: ConstraintContext, target_count: int = 2) -> List[Hypothesis]:
         hypotheses = []
         generated_ideas = []  
         
+        the_book = build_book(context)
+        
         for i in range(target_count):
             print(f"\n   [Iteration {i+1}]")
             
-            # 1. Expert proposes
-            print("    -> [Expert] Proposing novel hypothesis...")
+            print("    -> [Expert] Inventing hypothesis based on the literature...")
             avoid_prompt = f" Make it completely DIFFERENT from these previous ideas: {generated_ideas}" if generated_ideas else ""
-            task_propose = f"Propose a detailed scientific hypothesis for: {analysis.goal.description}. Base it on the provided ArXiv literature if relevant.{avoid_prompt}"
-            raw_hypothesis = self.pool.expert.perform_task(task_propose, str(context.known_facts))
-            
-            # 2. Critic reviews
-            print("    -> [Critic] Searching for constraint violations...")
-            task_critic = f"Review this hypothesis: {raw_hypothesis}. Find any flaws based on these absolute rules: {boundaries.hard_constraints}"
-            critique = self.pool.critic.perform_task(task_critic, "")
-            
-            # 3. Synthesizer merges (With Auto-Retry)
-            print("    -> [Synthesizer] Merging critique and extracting citations...")
-            
-            max_retries = _max_retries()
-            attempt = 0
-            success = False
-            error_feedback = ""
-            
-            while attempt < max_retries and not success:
-                attempt += 1
-                if attempt > 1:
-                    print(f"       [Retry {attempt}/{max_retries}] Asking LLM to fix JSON format...")
-                    
-                task_synth = f"""
-                You are the lead scientific author. 
-                Original Hypothesis: {raw_hypothesis}
-                Critic's Review: {critique}
-                
-                TASK: Write the FINAL, improved scientific hypothesis. 
-                1. EXTREME DETAIL: You MUST write a comprehensive, deep thesis (at least 4 to 5 long paragraphs, 500+ words). Explain exactly HOW the mechanism works, WHY it is viable, and detail the step-by-step implementation.
-                2. MATH FORMATTING: Provide explicit mathematical formulas using PLAIN TEXT ASCII ONLY (e.g., 'Force = mass * acceleration', 'A / B', 'd/dx'). DO NOT USE LATEX.
-                """
-                
-                json_format = f"""
-                CRITICAL INSTRUCTION: You are a strict data output API. You MUST return ONLY a valid JSON object.
-                
-                JSON RULES TO PREVENT PARSING CRASHES:
-                1. ALL keys MUST be enclosed in double quotes.
-                2. DO NOT use raw newlines. Use the literal characters '\\n' for paragraphs.
-                3. DO NOT use unescaped double quotes inside strings. Use single quotes (') instead.
-                4. ABSOLUTELY NO LATEX. DO NOT use backslashes (\\) or dollar signs ($) anywhere.
-                
-                JSON SCHEMA REQUIRED:
-                {{
-                    "description": "Write a massive, highly detailed scientific thesis here (500+ words). Use '\\n' for newlines. Explain the 'how' and 'why' extensively.",
-                    "assumptions": ["List EVERY single unproven assumption here. DO NOT hide them in the text."],
-                    "required_conditions": ["list of required conditions"],
-                    "violated_hard_constraints": ["List EVERY absolute physics law broken (e.g., negative mass, faster-than-light). BE BRUTALLY HONEST. Do not ignore the Critic's warnings."],
-                    "logical_flaws": ["List EVERY contradiction found by the Critic. DO NOT hide them."],
-                    "citations": ["list of citations"]
-                }}
-                {error_feedback}
-                """
-                
-                final_output = self.pool.synthesizer.perform_task(task_synth, json_format)
-                
-                # 4. JSON Extraction & Safeguards
-                try:
-                    start_idx = final_output.find('{')
-                    end_idx = final_output.rfind('}')
-                    
-                    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                        clean_json = final_output[start_idx:end_idx+1]
-                        
-                        try:
-                            data = json.loads(clean_json, strict=False)
-                        except json.JSONDecodeError:
-                            # Auto-clean common LLM formatting errors
-                            clean_json = clean_json.replace('\\', '\\\\').replace('\n', ' ')
-                            data = json.loads(clean_json, strict=False)
-                        
-                        agent_hypothesis = Hypothesis(
-                            id=str(uuid.uuid4()),
-                            goal_id=analysis.goal.id,
-                            description=data.get("description", "No description provided."),
-                            # The _ensure_list function completely shields Pydantic from LLM data type hallucinations
-                            assumptions=_ensure_list(data.get("assumptions", [])),
-                            required_conditions=_ensure_list(data.get("required_conditions", [])),
-                            violated_hard_constraints=_ensure_list(data.get("violated_hard_constraints", [])),
-                            logical_flaws=_ensure_list(data.get("logical_flaws", [])),
-                            citations=_ensure_list(data.get("citations", [])),
-                            feasibility_score=0.0, 
-                            confidence=0.5,
-                            status="speculative"
-                        )
-                        hypotheses.append(agent_hypothesis)
-                        generated_ideas.append(agent_hypothesis.description[:100])
-                        success = True 
-                    else:
-                        raise ValueError("The LLM did not return a valid JSON format with {} brackets.")
-                        
-                except Exception as e:
-                    # Provide feedback to the LLM for the next loop
-                    error_feedback = f"\nCRITICAL ERROR PREVIOUSLY: Your last output failed with error: '{str(e)}'. You MUST fix the JSON formatting."
-                    if attempt == max_retries:
-                        print(f"[ERROR] Iteration {i+1} failed after {max_retries} attempts.")
-                        print(f"[DEBUG RAW OUTPUT]:\n{final_output}\n")
+            task_propose = f"Propose a detailed hypothesis for: {analysis.goal.description}. Start directly with the hypothesis title: no greetings and no comments about the task. Do not list or restate the scientific laws; mention a law only where your mechanism directly depends on it.{avoid_prompt}"
+            raw_hypothesis = self.pool.expert.perform_task(task_propose, the_book)
+
+            agent_hypothesis = self.assess(raw_hypothesis, analysis, context, boundaries)
+            if agent_hypothesis is None:
+                print(f"[ERROR] Iteration {i+1} failed.")
+                continue
+            hypotheses.append(agent_hypothesis)
+            generated_ideas.append(agent_hypothesis.description[:100])
                         
         return hypotheses
