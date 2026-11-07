@@ -7,6 +7,7 @@ from unittest.mock import patch
 from hece.agents import AgentPool
 from hece.core.models.base import ConstraintContext, Goal, GoalAnalysis, Hypothesis, KnowledgeContext
 from hece.explorer import (Attempt, DiscoveryConfig, DiscoveryEngine, consecutive_failures, jaccard, keyword_set)
+from hece.inference import InferenceError
 
 LAWS = ["MUST NOT VIOLATE: First Law of Thermodynamics (Energy cannot be created or destroyed)"]
 QUOTE = "Water flux of 12 litres"
@@ -243,6 +244,24 @@ def test_stop_callback_and_state_persistence(tmp_path):
     assert data["goal"].startswith("reduce the energy") and data["finished_reason"] == "stopped by user"
     row = data["attempts"][0]
     assert row["strategy"] == "explore" and row["hypothesis"]["prediction"].startswith("Water flux")
+
+
+def test_llm_outage_mid_run_keeps_the_attempts_made_so_far(tmp_path):
+    class DyingLLM(ScriptedLLM):
+        def __call__(self, prompt, temperature=None):
+            if "OUTPUT FORMAT" in prompt and not self.expert_outputs:
+                raise InferenceError("Could not reach Ollama.")
+            return super().__call__(prompt, temperature)
+
+    engine = DiscoveryEngine(AgentPool(), DiscoveryConfig(max_iterations=6, target_count=5, seed=1, use_requirements=False),
+                             on_event=lambda m: None)
+    path = tmp_path / "run.json"
+    with patch("hece.agents.InferenceEngine.ask", new=DyingLLM([make_cand(0.3, "alpha pumping", 1)])):
+        result = engine.run(*setup(), save_path=str(path))
+
+    assert len(result.attempts) == 1
+    assert result.finished_reason.startswith("local LLM unavailable") and "Could not reach Ollama." in result.finished_reason
+    assert json.loads(path.read_text(encoding="utf-8"))["finished_reason"] == result.finished_reason
 
 
 def test_boundaries_add_universal_laws_and_biology_only_when_relevant():

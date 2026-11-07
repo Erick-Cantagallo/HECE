@@ -66,7 +66,7 @@ def run_discovery(project_name: str, goal: str, config: Optional[DiscoveryConfig
 
     conclusion = build_discovery_conclusion(result)
     pdf_path = None
-    if make_pdf:
+    if make_pdf and result.attempts:  # nothing to publish if no attempt ran (e.g. the local model was down)
         emit("Publishing the report (PDF)...")
         shown = result.accepted or result.near_misses(3)
         pdf_path = PaperGenerator.generate_pdf(project_name, analysis, context, boundaries, shown, conclusion,
