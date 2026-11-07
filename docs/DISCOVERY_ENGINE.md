@@ -41,9 +41,15 @@ Each iteration the engine (deterministically, in Python) picks one strategy:
 | `recombine` | Build a mechanism out of 2-3 unrelated seed concepts sampled from `concepts.py` (materials, organisms, phenomena, conditions, principles). |
 | `refine`    | Take the best near-miss (score >= 40%) and fix only its recorded problems (x -> x1). A parent is refined at most twice. |
 | `postulate` | After 3 consecutive failures, remove a recorded barrier by postulating a NEW physical quantity or law. This is the ONLY strategy where new quantities are allowed (and it must contain one). |
+| `reroute`   | Take an idea that ran into a physical law and reach the same effect while keeping the law: (a) pay the cost the law demands, (b) rely on a technology that does not exist yet, declared as `REQUIRES: <technology> \| SPEC: <numeric target>`, or (c) change the condition the limit depends on. A `ROUTE:` line (at least 12 words) must say which law was in the way and how it is kept. |
 
-Schedule: attempt 1 = explore; odd attempts = recombine; every third attempt = refine when a near-miss exists;
-every fourth attempt = postulate when allowed and 3+ attempts in a row failed.
+Schedule: attempt 1 = explore; then, if an idea ran into a law and has not been rerouted, reroute it (proven conflicts
+first: verified violation or law-level red flag, at the next slot; conflicts the Critic suspected but could not
+prove only every third slot, so the other strategies keep running; once per idea, never two reroutes in a row); otherwise every third attempt = refine when a near-miss exists; every fourth
+attempt = postulate when allowed and 3+ attempts in a row failed; odd attempts = recombine; the rest explore.
+
+Each technology a candidate declares as missing costs 10% (it depends on something that does not exist yet). The
+conclusion lists them under "What would have to be invented first", and marks any that would itself contradict a law.
 
 ## What a candidate must contain
 

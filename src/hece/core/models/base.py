@@ -58,7 +58,7 @@ class Hypothesis(BaseModel):
     # INVENTOR MODE (discovery engine) FIELDS
     title: str = ""
     family: str = ""            # short name of the core mechanism (used for novelty filtering)
-    strategy: str = ""          # explore | recombine | refine | postulate
+    strategy: str = ""          # explore | recombine | refine | postulate | reroute
     iteration: int = 0
     parent_id: Optional[str] = None
     concepts: List[str] = []    # seed concepts used by the recombine strategy
@@ -67,6 +67,8 @@ class Hypothesis(BaseModel):
     refutation: str = ""        # result that would prove the idea wrong
     speculative_notes: List[str] = []
     target: str = ""            # the physical requirement this attempt addressed (decomposition)
+    route: str = ""             # REROUTE: how this version keeps the law that stopped its parent
+    missing_technology: List[str] = []  # what would have to be invented first (each with a numeric spec)
 
     supporting_evidence: List[Evidence] = []
     conflicting_evidence: List[Evidence] = []

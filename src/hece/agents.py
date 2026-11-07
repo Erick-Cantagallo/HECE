@@ -5,7 +5,7 @@ import re
 import uuid
 from textwrap import shorten
 from typing import List, Any, Optional
-from hece.inference import InferenceEngine
+from hece.inference import DEFAULT_MODEL, InferenceEngine
 from hece.verification import split_violations, verified_evidence, filter_citations, parse_flaws, resolve_numbered_refs, drop_goal_restatements, split_law_flaws
 from hece.core.models.base import Hypothesis, GoalAnalysis, KnowledgeContext, ConstraintContext
 
@@ -46,7 +46,7 @@ class Agent:
     def __init__(self, name: str, role_description: str):
         self.name = name
         self.role = role_description
-        self.inference = InferenceEngine(model_name=os.getenv("MODEL_NAME", "llama3"))
+        self.inference = InferenceEngine(model_name=os.getenv("MODEL_NAME", DEFAULT_MODEL))
 
     def perform_task(self, task: str, context: str, creative: bool = False, temperature: Optional[float] = None) -> str:
         if creative:

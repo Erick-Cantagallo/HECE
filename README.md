@@ -43,7 +43,9 @@ HECE has two modes that share the same building blocks ([architecture](docs/arch
 
 The **inventor mode** ([discovery engine](docs/DISCOVERY_ENGINE.md)): instead of a fixed number of hypotheses, it keeps trying different mechanisms for a goal (explore, recombine unrelated concepts, refine near-misses), remembers what failed and why, and after repeated failures may postulate a new physical quantity, which must declare SI dimensions, an equation and when it reduces to known physics. Every attempt is logged in `runs/`.
 
-**Measuring the filter.** `hece-benchmark` scores 10 hypotheses whose verdict is known in advance. With `llama3` it currently accepts 4 of 5 sound ones and 0 of 5 that break a known law (one of those, an engine above the Carnot limit, was rated 90% by the model and stopped by a calculation in Python). It is a small, early benchmark.
+**When an idea runs into a law**, inventor mode does not just drop it: a REROUTE attempt must reach the same effect while keeping the law (pay the cost the law demands, rely on a technology that does not exist yet, or change the condition the limit depends on). The report then lists **what would have to be invented first**, each item with a numeric specification.
+
+**Measuring the filter.** `hece-benchmark` scores hypotheses whose verdict is known in advance, including 12 held-out cases written after the filter. With the default model (`qwen3:4b-instruct-2507`) no law-breaking case got through (0 of 11), while only about half of the sound ones were accepted; `llama3` let 3 of 6 held-out violations through. Details and caveats: [benchmarks/RESULTS.md](benchmarks/RESULTS.md).
 
 **Not there yet:**
 
@@ -85,10 +87,10 @@ The model rated its own idea 80%. Python found a grounded logical flaw, a "perpe
 
 ## Try it
 
-You need Python 3.10 or newer and [Ollama](https://ollama.com/download) running with a model pulled (the default is `llama3`, about 5 GB; a GPU with 6 GB is enough). Other Ollama models work through `MODEL_NAME`: `qwen3:4b-instruct-2507` ran the same classic goal about 3 times faster, fully on a 6 GB GPU, but rated its own ideas much lower (15% each time), so the choice of model changes the results.
+You need Python 3.10 or newer and [Ollama](https://ollama.com/download) running with a model pulled (the default is `qwen3:4b-instruct-2507-q4_K_M`, 2.5 GB, chosen with the benchmark; it fits fully on a 6 GB GPU). Other Ollama models work through `MODEL_NAME`, for example `llama3` (5 GB, slower, and it let more law-breaking ideas through). The model changes the results a lot.
 
 ```bash
-ollama pull llama3
+ollama pull qwen3:4b-instruct-2507-q4_K_M
 
 git clone https://github.com/Erick-Cantagallo/HECE.git
 cd HECE
@@ -104,7 +106,7 @@ hece "Can quantum sensors detect dark matter?" -p Orion -n 2
 - If Ollama is not running or the model is missing, HECE stops right away with a message that says how to fix it.
 - Inventor mode: `hece-discover "reduce the energy consumption of seawater desalination" --iterations 12` (or `python -m hece.discover`). Options are listed in `hece-discover --help` and in the [discovery engine](docs/DISCOVERY_ENGINE.md) page.
 - Web interface: `pip install -e ".[app]"` and then `streamlit run app.py`.
-- Optional settings live in `.env` (copy `.env.example`): `MODEL_NAME` (default `llama3`) and `MAX_RETRIES` (default `3`, how many times the synthesizer retries a malformed JSON answer).
+- Optional settings live in `.env` (copy `.env.example`): `MODEL_NAME` (default `qwen3:4b-instruct-2507-q4_K_M`) and `MAX_RETRIES` (default `3`, how many times the synthesizer retries a malformed JSON answer).
 - Inference is local. The only network call is the arXiv search.
 
 ## Tests

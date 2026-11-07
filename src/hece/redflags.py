@@ -36,7 +36,8 @@ _PATTERNS = [
      r"(?:place|placing|placed|embed\w*|insert\w*|install\w*|build|built)\b.{0,90}\b(?:neutron stars?|black holes?|white dwarfs?|pulsars?)\b"),
     ("extracting vacuum / zero-point energy",
      r"(?:tap|extract|harvest|borrow)\w*[^.]{0,60}\b(?:vacuum|zero[- ]point)\b[^.]{0,20}(?:energy|fluctuations)"
-     r"|(?:recharg|charg|power|energi)\w*[^.]{0,30}\bfrom the (?:quantum )?vacuum\b"),
+     r"|(?:recharg|charg|power|energi)\w*[^.]{0,30}\bfrom the (?:quantum )?vacuum\b"
+     r"|\b(?:work|energy|power)\s+(?:output\s+)?(?:[\w-]+\s+){0,2}from (?:the )?(?:quantum )?vacuum\b"),
     ("water memory / structured water",
      r"structured water|\bwater\b[^.]{0,40}\b(?:memory|remembers?)\b"),
     # Not law-level: changing the assumptions behind a limit is a legitimate creative path (e.g. tandem solar cells).
