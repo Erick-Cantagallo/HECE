@@ -15,8 +15,13 @@
 - `hece --version` and `hece-discover --version`; `hece.__version__`.
 - Documentation updated for 1.0: architecture of both modes, roadmap, Python 3.10+ everywhere.
 
+- Long texts in reports (unverified accusations, rejection reasons, the exploration map) are cut at a word boundary with "..." instead of mid-word.
+- `examples/`: two unedited real runs (classic and inventor mode) with their PDFs, console output and exploration log.
+
 ### Verified
-- Real end-to-end runs with `llama3` (8B) through Ollama on a GTX 1660 SUPER (6 GB), in both modes, with live arXiv retrieval.
+- Real end-to-end runs with `llama3` (8B) through Ollama on a GTX 1660 SUPER (6 GB) with live arXiv retrieval: classic mode (4 attempts, ~6.5 min) and inventor mode (6 attempts, ~12 min). See `examples/`.
+- `qwen3:4b-instruct-2507` runs the classic pipeline end to end (~2 min, fully on the GPU).
+- With the Ollama server stopped, `hece` exits with status 1 and a fix-it message, and inventor mode stops cleanly.
 
 ## [1.0.0-beta.2] - 2026-11-05
 ### Fixed

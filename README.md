@@ -52,9 +52,38 @@ The **inventor mode** ([discovery engine](docs/DISCOVERY_ENGINE.md)): instead of
 
 Known quirk: the PDF uses built-in fonts. Greek letters, superscripts and typographic quotes are transliterated (`μ`, `m^2`, `'`), but other characters outside Latin-1 still show up as `?`.
 
+## What a run looks like
+
+These are real, unedited runs on a desktop GPU (full write-up in [examples/](examples/)):
+
+```text
+$ hece "How could a battery store more energy per kilogram?" -p "Battery Energy Density" -n 1
+   === Monte Carlo Attempt 2/4 ===
+    -> [Expert] Inventing hypothesis based on the literature...
+    -> [Critic] Judging the invention against the literature...
+    -> [Critic] Checking internal consistency...
+    -> [Synthesizer] Classifying and assigning AI Viability Score...
+   📊 [Simulation] Score: 20% | Broken Laws: 0
+   ❌ [REJECTED]: AI estimate 80% -> final 20% after penalties (logical flaws: 1, assumptions: 2,
+      unverified accusations: 2, red flags: 1, numeric errors: 0); below the 65% threshold.
+```
+
+From the PDF of the same run:
+
+```text
+Red flags (deterministic screen): perpetual motion / over-unity / free energy: 'perpetual'
+```
+
+The model rated its own idea 80%. Python found a grounded logical flaw, a "perpetual motion" pattern and two unproven assumptions, and rejected it. In [inventor mode](examples/inventor-desalination/), an idea that reached exactly 65% was re-assessed twice independently (45%, 15%) and rejected rather than reported as a success.
+
+| | Classic (`-n 1`) | Inventor (6 attempts) |
+| --- | --- | --- |
+| Time on a GTX 1660 SUPER, `llama3` 8B | ~6.5 min | ~12 min |
+| Output | [PDF](examples/classic-battery/report.pdf) | [PDF](examples/inventor-desalination/report.pdf) + [JSON log](examples/inventor-desalination/exploration-log.json) |
+
 ## Try it
 
-You need Python 3.10 or newer and [Ollama](https://ollama.com/download) running with a model pulled (the default is `llama3`).
+You need Python 3.10 or newer and [Ollama](https://ollama.com/download) running with a model pulled (the default is `llama3`, about 5 GB; a GPU with 6 GB is enough). Other Ollama models work through `MODEL_NAME`: `qwen3:4b-instruct-2507` ran the same classic goal about 3 times faster, fully on a 6 GB GPU, but rated its own ideas much lower (15% each time), so the choice of model changes the results.
 
 ```bash
 ollama pull llama3

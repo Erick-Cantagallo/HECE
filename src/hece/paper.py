@@ -2,6 +2,7 @@
 import os
 import re
 from datetime import datetime
+from textwrap import shorten
 from fpdf import FPDF
 from hece.core.models.base import GoalAnalysis, KnowledgeContext, ConstraintContext, Hypothesis
 from typing import List, Optional
@@ -187,7 +188,7 @@ class PaperGenerator:
                 tag = f" [R{row['target']}]" if row.get("target") else ""
                 line = f"#{row['n']} {str(row['strategy']).upper()}{tag}{parent}{seeds} | {row.get('family') or '(no valid candidate)'} | {row['outcome']} {score}"
                 if row.get("reason") and row["outcome"] != "accepted":
-                    line += f"\n    barrier: {row['reason'][:300]}"
+                    line += f"\n    barrier: {shorten(row['reason'], 300, placeholder='...')}"
                 pdf._indestructible_print(line)
 
         # Save PDF with Custom Name
