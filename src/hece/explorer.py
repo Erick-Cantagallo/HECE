@@ -22,6 +22,7 @@ import json
 import random
 import re
 import time
+from textwrap import shorten
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from typing import Callable, Dict, List, Optional, Tuple
@@ -466,11 +467,11 @@ class DiscoveryEngine:
                           f"{self.sim.MIN_VIABILITY * 100:.0f}%).")
                 extra = [n for n in evaluated.speculative_notes if n.startswith("confirmation round")]
                 if extra:
-                    reason += " " + extra[0][:200]
+                    reason += " " + shorten(extra[0], 200, placeholder="...")
             else:
                 reason = self.sim.rejection_reason(evaluated)
                 if evaluated.logical_flaws:
-                    reason += " Flaw: " + evaluated.logical_flaws[0][:160]
+                    reason += " Flaw: " + shorten(evaluated.logical_flaws[0], 160, placeholder="...")
             attempt.reason = reason
 
     def _confirm(self, first: Hypothesis, description: str, analysis: GoalAnalysis, context: KnowledgeContext,

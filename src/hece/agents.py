@@ -3,6 +3,7 @@ import os
 import json
 import re
 import uuid
+from textwrap import shorten
 from typing import List, Any, Optional
 from hece.inference import InferenceEngine
 from hece.verification import split_violations, verified_evidence, filter_citations, parse_flaws, resolve_numbered_refs, drop_goal_restatements, split_law_flaws
@@ -217,7 +218,7 @@ class InvestigationOrchestrator:
         claim_text = f"{raw_hypothesis} {description}"
         verified, unverified = split_violations(claims, claim_text, boundaries.hard_constraints)
         evidence = verified_evidence(claims, claim_text, boundaries.hard_constraints)
-        unverified = unverified + [f"(law cited in the flaw review, not verified) {f.split(' (quote:')[0][:160]}" for f in law_flaws]
+        unverified = unverified + [f"(law cited in the flaw review, not verified) {shorten(f.split(' (quote:')[0], 200, placeholder='...')}" for f in law_flaws]
 
         notes: List[str] = []
         if not verified and len(unverified) >= 3:
