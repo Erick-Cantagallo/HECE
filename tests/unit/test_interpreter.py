@@ -41,3 +41,14 @@ def test_full_analyze_pipeline(interpreter):
     assert analysis.goal.complexity_level >= 3
     assert len(analysis.extracted_constraints) == 1
     assert "limitation" in analysis.extracted_constraints[0].description.lower()
+
+def test_extract_keywords_drops_fluff_and_ranks_domain_terms(interpreter):
+    kw = interpreter.extract_keywords("I want to create a novel method using graphene membranes")
+    assert "want" not in kw and "novel" not in kw and "using" not in kw
+    assert kw[0] == "graphene"
+
+
+def test_generic_verbs_are_not_search_terms(interpreter):
+    kw = interpreter.extract_keywords("reduce the energy consumption of seawater desalination")
+    assert "reduce" not in kw and "consumption" not in kw
+    assert "desalination" in kw[:3]

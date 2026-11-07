@@ -32,3 +32,9 @@ def test_retrieve_fallback_context(engine):
     
     assert "General Scientific Method rules apply" in context.domain_laws
     assert len(context.current_limitations) == 0
+
+def test_unknown_domain_gets_universal_physical_limits(engine):
+    goal = Goal(id="test-789", description="portal gun", domain=None, complexity_level=2)
+    context = engine.retrieve_context(GoalAnalysis(goal=goal, keywords=["portal", "gun"]))
+    assert "General Scientific Method rules apply" in context.domain_laws
+    assert any("Thermodynamics" in law for law in context.domain_laws)

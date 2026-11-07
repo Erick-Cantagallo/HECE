@@ -41,3 +41,7 @@ ehthumbs.db
 # Project Specific (Optional: ignore test reports if any)
 reports/
 !reports/.gitkeep
+
+# Generated at runtime (arXiv search cache and discovery-run logs)
+.hece_cache/
+runs/
