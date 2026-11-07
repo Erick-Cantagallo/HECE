@@ -28,6 +28,15 @@ def _ensure_list(value: Any) -> List[str]:
     
     return clean_list
 
+DEFAULT_MAX_RETRIES = 3
+
+def _max_retries() -> int:
+    """How many times the Synthesizer may retry malformed JSON (env MAX_RETRIES, default 3)."""
+    try:
+        return max(1, int(os.getenv("MAX_RETRIES", DEFAULT_MAX_RETRIES)))
+    except ValueError:
+        return DEFAULT_MAX_RETRIES
+
 def build_book(context: KnowledgeContext) -> str:
     """The shared context ('THE BOOK') handed to every agent."""
     return f"KNOWN FACTS: {' | '.join(context.known_facts)}\nLAWS: {' | '.join(context.domain_laws)}"
@@ -81,8 +90,8 @@ class InvestigationOrchestrator:
     JUDGE_TEMPERATURE = 0.1   # judges must be consistent: the same idea should not get 0 flaws once and 5 the next time
 
     def _synthesize(self, raw_hypothesis: str, critique: str, temperature: Optional[float] = None) -> Optional[dict]:
-        """Synthesizer call with up to 3 attempts. Returns the parsed JSON dict (with a score) or None."""
-        max_retries = 3
+        """Synthesizer call with up to MAX_RETRIES attempts (default 3). Returns the parsed JSON dict (with a score) or None."""
+        max_retries = _max_retries()
         error_feedback = ""
         for attempt in range(1, max_retries + 1):
             if attempt > 1:

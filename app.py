@@ -7,6 +7,7 @@ from hece.knowledge import KnowledgeEngine
 from hece.constraints import ConstraintEngine
 from hece.simulation import SimulationEngine
 from hece.agents import AgentPool, InvestigationOrchestrator
+from hece.inference import InferenceError
 from hece.paper import PaperGenerator
 from hece.conclusion import build_conclusion
 from hece.explorer import DiscoveryConfig
@@ -146,36 +147,40 @@ if run_btn:
 
     else:
         # Visual Loading Spinner with real-time status updates
-        with st.status("Initializing HECE Engine...", expanded=True) as status:
+        try:
+            with st.status("Initializing HECE Engine...", expanded=True) as status:
             
-            st.write("🔍 Interpreting user goal...")
-            interpreter = GoalInterpreter()
-            analysis = interpreter.analyze(goal_description)
+                st.write("🔍 Interpreting user goal...")
+                interpreter = GoalInterpreter()
+                analysis = interpreter.analyze(goal_description)
 
-            st.write("📚 Retrieving Scientific Context (ArXiv RAG)...")
-            knowledge_engine = KnowledgeEngine()
-            context = knowledge_engine.retrieve_context(analysis)
+                st.write("📚 Retrieving Scientific Context (ArXiv RAG)...")
+                knowledge_engine = KnowledgeEngine()
+                context = knowledge_engine.retrieve_context(analysis)
 
-            st.write("🚧 Establishing Scientific Boundaries...")
-            constraint_engine = ConstraintEngine()
-            boundaries = constraint_engine.process_constraints(analysis, context)
+                st.write("🚧 Establishing Scientific Boundaries...")
+                constraint_engine = ConstraintEngine()
+                boundaries = constraint_engine.process_constraints(analysis, context)
 
-            st.write(f"🤖 Activating Multi-Agent Investigation ({target_count} Hypotheses)...")
-            pool = AgentPool()
-            orchestrator = InvestigationOrchestrator(pool)
-            hypotheses = orchestrator.investigate(analysis, context, boundaries, target_count=target_count)
+                st.write(f"🤖 Activating Multi-Agent Investigation ({target_count} Hypotheses)...")
+                pool = AgentPool()
+                orchestrator = InvestigationOrchestrator(pool)
+                hypotheses = orchestrator.investigate(analysis, context, boundaries, target_count=target_count)
 
-            st.write("🔬 Running Deterministic Math Simulation...")
-            simulation_engine = SimulationEngine()
-            evaluated_hypotheses = simulation_engine.evaluate(hypotheses, boundaries)
+                st.write("🔬 Running Deterministic Math Simulation...")
+                simulation_engine = SimulationEngine()
+                evaluated_hypotheses = simulation_engine.evaluate(hypotheses, boundaries)
 
-            st.write("🧠 Synthesizing deep scientific conclusion...")
-            deep_conclusion = build_conclusion(pool, evaluated_hypotheses)
+                st.write("🧠 Synthesizing deep scientific conclusion...")
+                deep_conclusion = build_conclusion(pool, evaluated_hypotheses)
 
-            st.write("📑 Publishing Scientific Paper (PDF)...")
-            pdf_path = PaperGenerator.generate_pdf(project_name, analysis, context, boundaries, evaluated_hypotheses, deep_conclusion)
+                st.write("📑 Publishing Scientific Paper (PDF)...")
+                pdf_path = PaperGenerator.generate_pdf(project_name, analysis, context, boundaries, evaluated_hypotheses, deep_conclusion)
 
-            status.update(label="Investigation Complete!", state="complete", expanded=False)
+                status.update(label="Investigation Complete!", state="complete", expanded=False)
+        except InferenceError as e:
+            st.error(f"⚠️ The local model stopped answering: {e}")
+            st.stop()
 
         # 5. RESULTS DASHBOARD (The Audit Panel)
         st.success(f"Pipeline completed! Project **{project_name}** successfully evaluated.")

@@ -27,6 +27,7 @@ from datetime import datetime
 from typing import Callable, Dict, List, Optional, Tuple
 
 from hece.agents import AgentPool, InvestigationOrchestrator, build_book
+from hece.inference import InferenceError
 from hece.candidate import (Candidate, parse_candidate, split_requirements, validate_candidate,
                             compose_description, format_postulate)
 from hece.concepts import sample_concepts, concept_category
@@ -512,7 +513,10 @@ class DiscoveryEngine:
                 self.emit(f"    R{k}: {text}")
         elif self.cfg.use_requirements:
             self.emit("Deriving the physical requirements of the goal (model-derived, unverified)...")
-            result.requirements = self.derive_requirements(analysis, context, boundaries.hard_constraints)
+            try:
+                result.requirements = self.derive_requirements(analysis, context, boundaries.hard_constraints)
+            except InferenceError as e:
+                return self._llm_down(result, e, save_path)
             if result.requirements:
                 for k, text in enumerate(result.requirements, 1):
                     self.emit(f"    R{k}: {text}")
@@ -543,8 +547,11 @@ class DiscoveryEngine:
             strategy, parent = self.choose_strategy(i, result.attempts)
             self.emit(f"[{i + 1}/{self.cfg.max_iterations}] {strategy.upper()}"
                       + (f" (improving attempt {parent.index + 1})" if parent else ""))
-            attempt = self.run_attempt(i, strategy, parent, result.attempts, analysis, context, boundaries,
-                                       result.requirements)
+            try:
+                attempt = self.run_attempt(i, strategy, parent, result.attempts, analysis, context, boundaries,
+                                           result.requirements)
+            except InferenceError as e:
+                return self._llm_down(result, e, save_path)
             result.attempts.append(attempt)
 
             label = attempt.outcome.upper() + (f" {attempt.score * 100:.0f}%" if attempt.score is not None else "")
@@ -561,6 +568,14 @@ class DiscoveryEngine:
             elif covered():
                 result.finished_reason = "all requirements covered"
 
+        if save_path:
+            result.save(save_path)
+        return result
+
+    def _llm_down(self, result: DiscoveryResult, error: InferenceError, save_path: Optional[str]) -> DiscoveryResult:
+        """The local model stopped answering: keep the attempts made so far instead of losing the whole run."""
+        result.finished_reason = f"local LLM unavailable: {error}"
+        self.emit(f"[ERROR] {error}")
         if save_path:
             result.save(save_path)
         return result
