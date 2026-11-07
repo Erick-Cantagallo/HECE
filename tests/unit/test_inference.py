@@ -39,3 +39,31 @@ def test_ask_wraps_unexpected_errors_and_keeps_the_cause(_chat):
         InferenceEngine().ask("hi")
 
     assert isinstance(excinfo.value.__cause__, ValueError)
+
+
+class ServerError(Exception):
+    status_code = 500  # same shape as ollama.ResponseError when the model fails to load
+
+
+@patch("hece.inference.time.sleep")
+@patch("hece.inference.ollama.chat")
+def test_ask_retries_once_after_a_server_error(mock_chat, _sleep):
+    mock_chat.side_effect = [ServerError("unable to allocate CUDA_Host buffer"), {"message": {"content": "ok"}}]
+
+    assert InferenceEngine().ask("hi") == "ok"
+    assert mock_chat.call_count == 2
+
+
+@patch("hece.inference.time.sleep")
+@patch("hece.inference.ollama.chat", side_effect=ServerError("still broken"))
+def test_ask_gives_up_after_the_retry(mock_chat, _sleep):
+    with pytest.raises(InferenceError, match="still broken"):
+        InferenceEngine().ask("hi")
+    assert mock_chat.call_count == 2
+
+
+@patch("hece.inference.ollama.chat", side_effect=ConnectionError("connection refused"))
+def test_ask_does_not_retry_when_ollama_is_not_running(mock_chat):
+    with pytest.raises(InferenceError):
+        InferenceEngine().ask("hi")
+    assert mock_chat.call_count == 1

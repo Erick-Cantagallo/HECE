@@ -1,4 +1,5 @@
 # HECE/src/hece/inference.py
+import time
 import ollama
 from typing import Optional
 
@@ -13,6 +14,9 @@ class InferenceEngine:
     All inference is local, private, and free.
     """
 
+    SERVER_ERROR_RETRIES = 1
+    RETRY_DELAY_SECONDS = 5
+
     def __init__(self, model_name: str = "llama3"):
         self.model_name = model_name
 
@@ -25,14 +29,19 @@ class InferenceEngine:
         was returned as if it were the model's answer, so the next agents silently
         "reviewed" an error message and the run ended with an empty report.
         """
-        try:
-            kwargs = {"options": {"temperature": temperature}} if temperature is not None else {}
-            response = ollama.chat(model=self.model_name, messages=[
-                {'role': 'user', 'content': prompt},
-            ], **kwargs)
-            return response['message']['content']
-        except Exception as e:
-            raise InferenceError(self._explain(e)) from e
+        kwargs = {"options": {"temperature": temperature}} if temperature is not None else {}
+        for attempt in range(1 + self.SERVER_ERROR_RETRIES):
+            try:
+                response = ollama.chat(model=self.model_name, messages=[
+                    {'role': 'user', 'content': prompt},
+                ], **kwargs)
+                return response['message']['content']
+            except Exception as e:
+                # A 5xx usually means the model failed to load (e.g. a memory spike): worth one more try.
+                if (getattr(e, "status_code", None) or 0) >= 500 and attempt < self.SERVER_ERROR_RETRIES:
+                    time.sleep(self.RETRY_DELAY_SECONDS)
+                    continue
+                raise InferenceError(self._explain(e)) from e
 
     def _explain(self, error: Exception) -> str:
         if isinstance(error, ConnectionError):

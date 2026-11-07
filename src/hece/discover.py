@@ -4,6 +4,7 @@ import argparse
 
 from dotenv import load_dotenv
 
+from hece import __version__
 from hece.explorer import DiscoveryConfig
 from hece.pipeline import run_discovery
 
@@ -21,6 +22,7 @@ def main(argv=None) -> None:
     parser.add_argument("--requirement", action="append", default=None,
                         help="a physical requirement you define (repeat the option for several); skips the model-derived ones")
     parser.add_argument("--minutes", type=float, default=None, help="optional time limit in minutes")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     args = parser.parse_args(argv)
 
     config = DiscoveryConfig(max_iterations=args.iterations, target_count=args.target, seed=args.seed,

@@ -138,7 +138,7 @@ Only then should implementation begin.
 
 # Coding Standards
 
-- Python 3.12+
+- Python 3.10+ (developed on 3.12; CI covers 3.10 to 3.13)
 
 - Pydantic models
 

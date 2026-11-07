@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hece"
-version = "1.0.0b2"
+version = "1.0.0"
 description = "Hypothesis & Creativity Engine: structured scientific investigation with local LLMs (Ollama), arXiv RAG and deterministic scoring."
 readme = "README.md"
 requires-python = ">=3.10"
