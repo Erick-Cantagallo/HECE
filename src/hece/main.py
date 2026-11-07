@@ -8,6 +8,7 @@ from hece.constraints import ConstraintEngine
 from hece.simulation import SimulationEngine
 from hece.agents import AgentPool, InvestigationOrchestrator
 from hece.paper import PaperGenerator
+from hece.conclusion import build_conclusion
 
 load_dotenv()
 
@@ -32,15 +33,57 @@ def run_hece(project_name: str, goal_description: str, target_count: int):
     constraint_engine = ConstraintEngine()
     boundaries = constraint_engine.process_constraints(analysis, context)
     
-    print(f"\n🤖 Status: Activating Multi-Agent Investigation (Target: {target_count} Hypotheses)...")
+    # Initialize the core engines before the loop
     pool = AgentPool()
     orchestrator = InvestigationOrchestrator(pool)
-    hypotheses = orchestrator.investigate(analysis, context, boundaries, target_count=target_count)
-
-    print("\n🔬 Status: Running Hypothesis Evaluation & Simulation...")
     simulation_engine = SimulationEngine()
-    evaluated_hypotheses = simulation_engine.evaluate(hypotheses, boundaries)
     
+    print(f"\n🤖 Status: Activating Multi-Agent Investigation (Target: {target_count} Valid Hypotheses)...")
+    print("🎲 [MONTE CARLO SAMPLING ACTIVE: Minimum 65% Viability & 0 Broken Laws]")
+    
+    # --- MONTE CARLO (REJECTION SAMPLING) LOOP ---
+    evaluated_hypotheses = []
+    attempts = 0
+    # Safeguard against infinite loops: we allow 4 attempts per requested hypothesis
+    max_attempts = target_count * 4 
+
+    while len(evaluated_hypotheses) < target_count and attempts < max_attempts:
+        attempts += 1
+        print(f"\n   === Monte Carlo Attempt {attempts}/{max_attempts} ===")
+        
+        # 1. Generate exactly 1 hypothesis candidate
+        hypotheses_batch = orchestrator.investigate(analysis, context, boundaries, target_count=1)
+        
+        if not hypotheses_batch:
+            print("   [!] Generation failed due to Agent collapse. Retrying...")
+            continue
+            
+        # 2. Evaluate the candidate immediately
+        evaluated_batch = simulation_engine.evaluate(hypotheses_batch, boundaries)
+        candidate = evaluated_batch[0]
+        
+        # Extract metrics for the deterministic check
+        score = candidate.feasibility_score * 100
+        broken_laws = len(candidate.violated_hard_constraints)
+        
+        print(f"   📊 [Simulation] Score: {score:.0f}% | Broken Laws: {broken_laws}")
+        
+        # 3. Apply Rejection Sampling rules
+        if broken_laws > 0:
+            print("   ❌ [REJECTED]: Hypothesis violates fundamental physical laws.")
+            continue
+            
+        if score < 65:
+            print(f"   ❌ [REJECTED]: Viability ({score:.0f}%) is below the 65% minimum threshold.")
+            continue
+            
+        # 4. If it survives the filters, add it to the final valid list
+        print("   ✅ [ACCEPTED]: Hypothesis passed all strict viability thresholds!")
+        evaluated_hypotheses.append(candidate)
+
+    if not evaluated_hypotheses:
+        print("\n[!] CRITICAL WARNING: Monte Carlo pipeline failed to find any viable hypotheses within the iteration limits.")
+
     print("\n[+] EVALUATION RESULTS:")
     for i, hyp in enumerate(evaluated_hypotheses, 1):
         status_icon = "🟢" if hyp.status == "active" else "🔴"
@@ -48,16 +91,7 @@ def run_hece(project_name: str, goal_description: str, target_count: int):
 
     # --- SPRINT 10 (Credibility Update): DEEP CONCLUSION SYNTHESIS ---
     print("\n🧠 Status: Synthesizing deep scientific conclusion...")
-    if evaluated_hypotheses:
-        hypotheses_text = " | ".join([f"Hypothesis {i+1}: {h.description} (Score: {h.feasibility_score})" for i, h in enumerate(evaluated_hypotheses)])
-        conclusion_prompt = f"""
-        Analyze the following {len(evaluated_hypotheses)} evaluated hypotheses: {hypotheses_text}.
-        Write a comprehensive, deep comparative scientific conclusion. 
-        Which approach is most promising? What are the critical roadblocks or physics violations?
-        """
-        deep_conclusion = pool.synthesizer.perform_task(conclusion_prompt, "Write 2 to 3 insightful paragraphs. DO NOT use markdown bolding (**) or quotes.")
-    else:
-        deep_conclusion = "No valid hypotheses were generated to form a conclusion."
+    deep_conclusion = build_conclusion(pool, evaluated_hypotheses)
 
     print("\n📑 Status: Publishing Scientific Paper (PDF)...")
     pdf_path = PaperGenerator.generate_pdf(project_name, analysis, context, boundaries, evaluated_hypotheses, deep_conclusion)

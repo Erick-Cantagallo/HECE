@@ -50,3 +50,26 @@ def test_generate_pdf(mock_output):
     assert filename.endswith(".pdf")
     # Verifies if the system actually commanded the PDF to be saved
     mock_output.assert_called_once()
+
+def test_sanitize_keeps_greek_readable():
+    assert _sanitize_text("\u03c9TRI \u2192 x \u2248 y") == "omegaTRI -> x ~ y"
+
+
+@patch('hece.paper.FPDF.output')
+def test_generate_pdf_with_exploration_map_and_inventor_fields(mock_output):
+    goal = Goal(id="pdf-inv", description="Inventor PDF")
+    hyp = Hypothesis(id="h", goal_id="pdf-inv", description="word " * 60, feasibility_score=0.7, status="active",
+                     strategy="recombine", family="strain wave", concepts=["spider silk", "resonance"],
+                     speculative_notes=["q: dimensions identical to energy"])
+    log = [{"n": 1, "strategy": "recombine", "family": "strain wave", "title": "t", "concepts": ["spider silk", "resonance"],
+            "parent": None, "outcome": "accepted", "score": 0.7, "reason": ""},
+           {"n": 2, "strategy": "refine", "family": "x", "title": "t2", "concepts": [], "parent": 1,
+            "outcome": "rejected", "score": 0.2, "reason": "below the threshold"}]
+    path = PaperGenerator.generate_pdf("Inventor Project", GoalAnalysis(goal=goal), KnowledgeContext(goal_id="pdf-inv"),
+                                       ConstraintContext(goal_id="pdf-inv", hard_constraints=["Law"]), [hyp], "done",
+                                       exploration_log=log)
+    assert path.endswith(".pdf") and mock_output.called
+
+
+def test_sanitize_turns_superscripts_and_micro_into_readable_text():
+    assert _sanitize_text("kg m\u00b2 s\u207b\u00b2 and 10 \u03bcm") == "kg m^2 s^-2 and 10 \u00b5m"
