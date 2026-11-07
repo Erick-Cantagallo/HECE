@@ -25,7 +25,7 @@ def physics_analysis():
 
 def test_retrieve_physics_context(engine, physics_analysis):
     context = engine.retrieve_context(physics_analysis)
-
+    
     assert context.goal_id == "test-123"
     # Ensure thermodynamics laws are injected for physics
     assert any("Thermodynamics" in law for law in context.domain_laws)
@@ -38,7 +38,7 @@ def test_retrieve_context_injects_arxiv_literature(engine, physics_analysis, arx
     context = engine.retrieve_context(physics_analysis)
 
     # The query is built from the top keywords and the papers land in the known facts
-    arxiv_search.assert_called_once_with("quantum gravity")
+    arxiv_search.assert_called_once_with("quantum gravity", keywords=["quantum", "gravity"], use_cache=True)
     assert "LITERATURE: mocked" in context.known_facts
 
 def test_retrieve_fallback_context(engine):
@@ -46,6 +46,12 @@ def test_retrieve_fallback_context(engine):
     goal = Goal(id="test-456", description="Unknown test", domain=None, complexity_level=2)
     analysis = GoalAnalysis(goal=goal, keywords=["test"])
     context = engine.retrieve_context(analysis)
-
+    
     assert "General Scientific Method rules apply" in context.domain_laws
     assert len(context.current_limitations) == 0
+
+def test_unknown_domain_gets_universal_physical_limits(engine):
+    goal = Goal(id="test-789", description="portal gun", domain=None, complexity_level=2)
+    context = engine.retrieve_context(GoalAnalysis(goal=goal, keywords=["portal", "gun"]))
+    assert "General Scientific Method rules apply" in context.domain_laws
+    assert any("Thermodynamics" in law for law in context.domain_laws)

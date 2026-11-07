@@ -47,6 +47,26 @@ class Hypothesis(BaseModel):
     # NEW FIELDS FOR DETERMINISTIC CALCULATION
     violated_hard_constraints: List[str] = []
     logical_flaws: List[str] = []
+    unverified_violations: List[str] = []  # accusations the Critic could not prove
+    violation_evidence: List[str] = []  # law | quote | mechanism of each VERIFIED violation
+    numeric_flags: List[str] = []  # arithmetic inconsistencies verified by Python (numerics.py)
+    red_flags: List[str] = []  # deterministic pseudo-science screen (see redflags.py)
+    needs_human_review: bool = False
+    confirmation_scores: List[float] = []  # independent re-assessments of a would-be ACTIVE candidate
+    ai_estimate: Optional[float] = None  # the AI's own initial score, kept for auditing
+
+    # INVENTOR MODE (discovery engine) FIELDS
+    title: str = ""
+    family: str = ""            # short name of the core mechanism (used for novelty filtering)
+    strategy: str = ""          # explore | recombine | refine | postulate
+    iteration: int = 0
+    parent_id: Optional[str] = None
+    concepts: List[str] = []    # seed concepts used by the recombine strategy
+    postulates: List[str] = []  # explicitly postulated NEW quantities / laws
+    prediction: str = ""        # measurable, falsifiable prediction
+    refutation: str = ""        # result that would prove the idea wrong
+    speculative_notes: List[str] = []
+    target: str = ""            # the physical requirement this attempt addressed (decomposition)
 
     supporting_evidence: List[Evidence] = []
     conflicting_evidence: List[Evidence] = []

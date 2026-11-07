@@ -2,9 +2,11 @@
 
 **Project:** HECE — Hypothesis & Creativity Engine
 
-**Current Version:** Pre-Alpha
+**Current Version:** 1.0.0 (research prototype)
 
-**Current Milestone:** Sprint 1 — Goal Interpreter
+**Current Milestone:** calibration of the screening (see `ROADMAP.md`)
+
+> This page keeps the original vision and rules. The sections "Current Architecture", "Repository Status" and "Next Immediate Goal" describe Sprint 1 and are kept for history; the current state is in `docs/architecture.md`, `ROADMAP.md` and `CHANGELOG.md`.
 
 ---
 
@@ -138,7 +140,7 @@ Only then should implementation begin.
 
 # Coding Standards
 
-- Python 3.12+
+- Python 3.10+ (developed on 3.12; CI covers 3.10 to 3.13)
 
 - Pydantic models
 

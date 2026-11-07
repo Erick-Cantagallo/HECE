@@ -1,10 +1,11 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="HECE, the Hypothesis & Creativity Engine. Under construction." width="100%">
+<img src="docs/assets/banner.svg" alt="HECE, the Hypothesis & Creativity Engine. Version 1.0, research prototype." width="100%">
 
 <br>
 
-![Status: under construction](https://img.shields.io/badge/status-under%20construction-facc15?labelColor=1c1917)
+![Version 1.0](https://img.shields.io/badge/version-1.0-4ade80?labelColor=052e16)
+![Status: research prototype](https://img.shields.io/badge/status-research%20prototype-facc15?labelColor=1c1917)
 [![CI](https://github.com/Erick-Cantagallo/HECE/actions/workflows/ci.yml/badge.svg)](https://github.com/Erick-Cantagallo/HECE/actions/workflows/ci.yml)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-22c55e)
@@ -13,7 +14,7 @@
 
 </div>
 
-> 🚧 **Under construction.** HECE is an ambitious, long-term project and most of it is still ahead. This repository holds an early prototype: expect rough edges, missing pieces and breaking changes, and do not read anything it produces as established science.
+> 🔬 **Version 1.0, research prototype.** HECE runs end to end on a normal PC with a local model: it reads the literature, proposes mechanisms, attacks them, checks the attacks in Python and writes a report. It is a long-term project and a lot is still ahead, so do not read anything it produces as established science.
 
 ## The idea
 
@@ -31,27 +32,60 @@ HECE is not a chatbot, a search engine or an oracle. Sometimes the right outcome
 
 ## Where it is today
 
-The repository contains a first, linear prototype of the investigation pipeline ([architecture](docs/architecture.md)):
+HECE has two modes that share the same building blocks ([architecture](docs/architecture.md)). The **classic investigation** runs this pipeline:
 
 1. **Goal interpretation** (deterministic, no LLM): keywords, domain, complexity and simple constraints (such as "without" and "only") taken from a goal written in English.
 2. **Knowledge**: a few built-in laws for physics and biology, plus real papers fetched from arXiv (RAG).
 3. **Constraints**: hard rules (laws and strict requirements) kept apart from preferences.
 4. **Hypothesis generation**: three agents running on a local LLM through [Ollama](https://ollama.com). An expert proposes, a critic attacks, a synthesizer consolidates.
-5. **Scoring**: a fixed formula over the violations, flaws and assumptions that the agents reported.
+5. **Scoring**: a fixed formula over the violations, flaws and assumptions that the agents reported. Accusations are only counted when Python can verify the quoted text, and only candidates with no verified law violation and at least 65% are kept.
 6. **Report**: a PDF in `reports/`.
 
-**Not there yet**, and the reason this page says "under construction":
+The **inventor mode** ([discovery engine](docs/DISCOVERY_ENGINE.md)): instead of a fixed number of hypotheses, it keeps trying different mechanisms for a goal (explore, recombine unrelated concepts, refine near-misses), remembers what failed and why, and after repeated failures may postulate a new physical quantity, which must declare SI dimensions, an equation and when it reduces to known physics. Every attempt is logged in `runs/`.
 
-- **The creative core described above.** Today the LLM proposes ideas and the critic flags the ones that clash with the built-in laws. A hypothesis that clashes only gets a lower score; HECE does not yet look for a way around the law by creating something new first.
+**Measuring the filter.** `hece-benchmark` scores 10 hypotheses whose verdict is known in advance. With `llama3` it currently accepts 4 of 5 sound ones and 0 of 5 that break a known law (one of those, an engine above the Carnot limit, was rated 90% by the model and stopped by a calculation in Python). It is a small, early benchmark.
+
+**Not there yet:**
+
+- **A proven creative core.** Inventor mode is a first attempt at the idea above (finding a way around a barrier by creating something new first), but it has not been validated: whether its candidates are any good still depends on the model and needs human review.
 - **Testing hypotheses.** The score does not simulate anything. It counts the problems reported by the agents, so it is only as good as the model behind them.
-- **Laws for other domains and a user interface.** Only physics and biology have built-in laws, and there is no interface beyond the command line (both are on the [roadmap](ROADMAP.md)).
+- **Laws for other domains.** Only physics and biology have built-in laws, plus a few universal limits (see the [roadmap](ROADMAP.md)).
 - **Any guarantee of scientific correctness.** Treat the output as brainstorming that needs human review.
 
-Known quirk: the PDF uses built-in fonts, so characters outside Latin-1 show up as `?`.
+Known quirk: the PDF uses built-in fonts. Greek letters, superscripts and typographic quotes are transliterated (`μ`, `m^2`, `'`), but other characters outside Latin-1 still show up as `?`.
+
+## What a run looks like
+
+These are real, unedited runs on a desktop GPU (full write-up in [examples/](examples/)):
+
+```text
+$ hece "How could a battery store more energy per kilogram?" -p "Battery Energy Density" -n 1
+   === Monte Carlo Attempt 2/4 ===
+    -> [Expert] Inventing hypothesis based on the literature...
+    -> [Critic] Judging the invention against the literature...
+    -> [Critic] Checking internal consistency...
+    -> [Synthesizer] Classifying and assigning AI Viability Score...
+   📊 [Simulation] Score: 20% | Broken Laws: 0
+   ❌ [REJECTED]: AI estimate 80% -> final 20% after penalties (logical flaws: 1, assumptions: 2,
+      unverified accusations: 2, red flags: 1, numeric errors: 0); below the 65% threshold.
+```
+
+From the PDF of the same run:
+
+```text
+Red flags (deterministic screen): perpetual motion / over-unity / free energy: 'perpetual'
+```
+
+The model rated its own idea 80%. Python found a grounded logical flaw, a "perpetual motion" pattern and two unproven assumptions, and rejected it. In [inventor mode](examples/inventor-desalination/), an idea that reached exactly 65% was re-assessed twice independently (45%, 15%) and rejected rather than reported as a success.
+
+| | Classic (`-n 1`) | Inventor (6 attempts) |
+| --- | --- | --- |
+| Time on a GTX 1660 SUPER, `llama3` 8B | ~6.5 min | ~12 min |
+| Output | [PDF](examples/classic-battery/report.pdf) | [PDF](examples/inventor-desalination/report.pdf) + [JSON log](examples/inventor-desalination/exploration-log.json) |
 
 ## Try it
 
-You need Python 3.10 or newer and [Ollama](https://ollama.com/download) running with a model pulled (the default is `llama3`).
+You need Python 3.10 or newer and [Ollama](https://ollama.com/download) running with a model pulled (the default is `llama3`, about 5 GB; a GPU with 6 GB is enough). Other Ollama models work through `MODEL_NAME`: `qwen3:4b-instruct-2507` ran the same classic goal about 3 times faster, fully on a 6 GB GPU, but rated its own ideas much lower (15% each time), so the choice of model changes the results.
 
 ```bash
 ollama pull llama3
@@ -68,6 +102,8 @@ hece "Can quantum sensors detect dark matter?" -p Orion -n 2
 - Write the goal in English: the deterministic interpreter only knows English keywords.
 - More hypotheses mean more calls to the model, so more time.
 - If Ollama is not running or the model is missing, HECE stops right away with a message that says how to fix it.
+- Inventor mode: `hece-discover "reduce the energy consumption of seawater desalination" --iterations 12` (or `python -m hece.discover`). Options are listed in `hece-discover --help` and in the [discovery engine](docs/DISCOVERY_ENGINE.md) page.
+- Web interface: `pip install -e ".[app]"` and then `streamlit run app.py`.
 - Optional settings live in `.env` (copy `.env.example`): `MODEL_NAME` (default `llama3`) and `MAX_RETRIES` (default `3`, how many times the synthesizer retries a malformed JSON answer).
 - Inference is local. The only network call is the arXiv search.
 

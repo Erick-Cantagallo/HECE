@@ -1,9 +1,21 @@
 # HECE/src/hece/paper.py
 import os
+import re
 from datetime import datetime
+from textwrap import shorten
 from fpdf import FPDF
 from hece.core.models.base import GoalAnalysis, KnowledgeContext, ConstraintContext, Hypothesis
-from typing import List
+from typing import List, Optional
+
+_GREEK = {"α": "alpha", "β": "beta", "γ": "gamma", "δ": "delta", "ε": "epsilon", "ζ": "zeta", "η": "eta", "θ": "theta",
+          "κ": "kappa", "λ": "lambda", "μ": "\u00b5", "ν": "nu", "ξ": "xi", "π": "pi", "ρ": "rho", "σ": "sigma", "τ": "tau",
+          "φ": "phi", "χ": "chi", "ψ": "psi", "ω": "omega", "Γ": "Gamma", "Δ": "Delta", "Θ": "Theta", "Λ": "Lambda",
+          "Π": "Pi", "Σ": "Sigma", "Φ": "Phi", "Ψ": "Psi", "Ω": "Omega", "ℏ": "hbar", "≈": "~", "≤": "<=", "≥": ">=",
+          "→": "->", "−": "-", "–": "-", "—": "-", "’": "'", "‘": "'", "“": "'", "”": "'"}
+_TRANSLIT = {ord(k): v for k, v in _GREEK.items()}
+_SUP_RUN = re.compile(r"[\u2070\u00b9\u00b2\u00b3\u2074-\u2079\u207a\u207b]+")
+_SUP_MAP = str.maketrans("\u2070\u00b9\u00b2\u00b3\u2074\u2075\u2076\u2077\u2078\u2079\u207a\u207b", "012345678 9+-".replace(" ", "")[:12])
+
 
 def _sanitize_text(text: str) -> str:
     """
@@ -24,6 +36,8 @@ def _sanitize_text(text: str) -> str:
     safe = safe.replace('\\partial', 'd')
     safe = safe.replace('\\', '') # Catch-all for remaining backslashes
     
+    safe = _SUP_RUN.sub(lambda m: "^" + m.group(0).translate(_SUP_MAP), safe)  # m\u00b2 s\u207b\u00b2 -> m^2 s^-2
+    safe = safe.translate(_TRANSLIT)  # keep Greek letters/symbols readable instead of '?'
     safe = safe.encode('latin-1', 'replace').decode('latin-1')
     safe = safe.replace('\t', '    ')
     return safe
@@ -66,7 +80,9 @@ class ScientificPaper(FPDF):
 
 class PaperGenerator:
     @staticmethod
-    def generate_pdf(project_name: str, analysis: GoalAnalysis, context: KnowledgeContext, boundaries: ConstraintContext, hypotheses: List[Hypothesis], deep_conclusion: str) -> str:
+    def generate_pdf(project_name: str, analysis: GoalAnalysis, context: KnowledgeContext, boundaries: ConstraintContext, hypotheses: List[Hypothesis], deep_conclusion: str,
+                     exploration_log: Optional[List[dict]] = None,
+                     requirements: Optional[List[str]] = None, requirements_source: str = "model") -> str:
         pdf = ScientificPaper()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
@@ -90,12 +106,19 @@ class PaperGenerator:
             meth_text += f"- {hc}\n"
             
         meth_text += "\nB. VIABILITY SCORE CALCULATION:\n"
-        meth_text += "The Feasibility Score is calculated deterministically by the Python Simulation Engine, NOT by the AI. "
-        meth_text += "The base score starts at 100%. Mathematical penalties are applied based on flaws identified during the investigation:\n"
-        meth_text += "  [-] 40% penalty per Violated Hard Constraint (Physics/Thermodynamics laws broken).\n"
-        meth_text += "  [-] 15% penalty per Logical Flaw identified by the AI Critic.\n"
-        meth_text += "  [-] 5% penalty per Unproven Assumption required.\n\n"
-        meth_text += "Scores > 70% indicate high theoretical compatibility. Scores < 50% denote severe violations of known physics."
+        meth_text += "The AI proposes an initial viability estimate; the Python Simulation Engine then applies these rules in order:\n"
+        meth_text += "  1. Substance Lock: a description under 50 words scores 0%.\n"
+        meth_text += "  2. Any VERIFIED violation of a hard constraint scores 0%: either the Critic's accusation with a quote checked by Python, or a law checked by arithmetic (heat-to-work efficiency above the Carnot limit of the stated temperatures).\n"
+        meth_text += "  3. Otherwise: AI estimate, minus 15% per logical flaw, 15% per red flag (known pseudo-scientific patterns), 5% per unproven assumption. Accusations Python could not verify are listed and require human review, but do not change the score.\n"
+        meth_text += "  4. A hypothesis is accepted only with a final score of at least 65% and no red flag that contradicts a fundamental law (energy without input, faster-than-light signalling, energy from the vacuum, entropy reversal); those are blocked for human review.\n"
+        meth_text += "  5. Acceptance means automated screening only; accepted hypotheses still require expert review."
+        if exploration_log:
+            meth_text += "\n\nC. INVENTOR MODE (speculative exploration):\n"
+            meth_text += "  - The engine explores many mechanism families; every attempt is logged in section 5.\n"
+            meth_text += "  - Each hypothesis must state a numeric, falsifiable PREDICTION and a REFUTATION condition (Falsifiability Lock: otherwise 0%).\n"
+            meth_text += "  - New physical quantities or laws may be postulated, but each must declare SI dimensions, a coupling, and the condition under which it reduces to known physics. Each postulate costs 10%.\n"
+            meth_text += "  - The listed physical laws remain hard constraints: postulates extend them, they never override them.\n"
+            meth_text += "  - Ideas come from the model's own knowledge unless literature is listed in section 1. They are speculative candidates for experiments, not established science."
         pdf._indestructible_print(meth_text)
 
         # 4. Proposed Hypotheses
@@ -107,6 +130,35 @@ class PaperGenerator:
             
             pdf.set_font("helvetica", "", 11)
             pdf._indestructible_print(hyp.description)
+
+            if hyp.strategy:
+                pdf.set_font("helvetica", "I", 9)
+                pdf._indestructible_print(
+                    f"Strategy: {hyp.strategy} | family: {hyp.family}"
+                    + (f" | seeds: {' + '.join(hyp.concepts)}" if hyp.concepts else ""))
+                if hyp.target:
+                    pdf._indestructible_print(f"Target requirement: {hyp.target}")
+
+            est = f"{hyp.ai_estimate * 100:.0f}%" if hyp.ai_estimate is not None else "n/a"
+            pdf.set_font("helvetica", "I", 9)
+            pdf._indestructible_print(
+                f"Audit: AI estimate {est} | logical flaws: {len(hyp.logical_flaws)} | "
+                f"assumptions: {len(hyp.assumptions)} | unverified accusations: {len(hyp.unverified_violations)} | "
+                f"human review: {'yes' if hyp.needs_human_review else 'no'}")
+            for label, items in (("Logical flaws", hyp.logical_flaws), ("Assumptions", hyp.assumptions),
+                                 ("Numeric inconsistencies (verified by Python)", hyp.numeric_flags),
+                                 ("Red flags (deterministic screen)", hyp.red_flags),
+                                 ("Speculative notes", hyp.speculative_notes),
+                                 ("Unverified accusations (not applied)", hyp.unverified_violations)):
+                if items:
+                    pdf._indestructible_print(f"{label}: " + "; ".join(str(i) for i in items))
+            if hyp.confirmation_scores:
+                pdf._indestructible_print("Independent confirmation rounds: " + ", ".join(f"{x * 100:.0f}%" for x in hyp.confirmation_scores))
+            if hyp.status == "active":
+                pdf._indestructible_print("Passed automated screening only. Not validated by experiment; expert review required.")
+            for ev in hyp.violation_evidence:
+                pdf._indestructible_print(f"Proof of violation: {ev}")
+            pdf.set_font("helvetica", "", 11)
             
             if hyp.citations:
                 pdf.set_font("helvetica", "I", 10)
@@ -122,6 +174,22 @@ class PaperGenerator:
         active = sum(1 for h in hypotheses if h.status == 'active')
         pdf._indestructible_print(f"PIPELINE SUMMARY: Evaluated {len(hypotheses)} hypotheses. {active} hypotheses passed strict deterministic evaluation.\n")
         pdf._indestructible_print(f"DEEP ANALYSIS:\n{deep_conclusion}")
+
+        if exploration_log:
+            pdf.chapter_title("5. Exploration Map")
+            pdf.set_font("helvetica", "", 10)
+            if requirements:
+                pdf._indestructible_print(("Requirements supplied by the user:\n" if requirements_source == "user" else "Requirements derived from the goal (model-derived, not verified):\n")
+                                          + "\n".join(f"  R{k}: {text}" for k, text in enumerate(requirements, 1)) + "\n")
+            for row in exploration_log:
+                seeds = f" | seeds: {' + '.join(row['concepts'])}" if row.get("concepts") else ""
+                parent = f" | improves #{row['parent']}" if row.get("parent") else ""
+                score = f"{row['score'] * 100:.0f}%" if row.get("score") is not None else "n/a"
+                tag = f" [R{row['target']}]" if row.get("target") else ""
+                line = f"#{row['n']} {str(row['strategy']).upper()}{tag}{parent}{seeds} | {row.get('family') or '(no valid candidate)'} | {row['outcome']} {score}"
+                if row.get("reason") and row["outcome"] != "accepted":
+                    line += f"\n    barrier: {shorten(row['reason'], 300, placeholder='...')}"
+                pdf._indestructible_print(line)
 
         # Save PDF with Custom Name
         os.makedirs("reports", exist_ok=True)

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hece"
-version = "1.0.0b2"
+version = "1.0.0"
 description = "Hypothesis & Creativity Engine: structured scientific investigation with local LLMs (Ollama), arXiv RAG and deterministic scoring."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -32,9 +32,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+# Web interface: streamlit run app.py
+app = ["streamlit>=1.30"]
 
 [project.scripts]
 hece = "hece.main:main"
+hece-discover = "hece.discover:main"
+hece-benchmark = "hece.benchmark:main"
 
 [project.urls]
 Homepage = "https://github.com/Erick-Cantagallo/HECE"
