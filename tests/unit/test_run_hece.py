@@ -55,6 +55,27 @@ def test_full_pipeline(_ask, search_arxiv, generate_pdf):
     assert conclusion.startswith("2 of 2 hypotheses passed the automated screening.")
 
 
+@patch("hece.main.PaperGenerator.generate_pdf", return_value="reports/HECE_Smoke.pdf")
+@patch("hece.knowledge.ScientificToolbox.search_arxiv", return_value="LITERATURE: mocked")
+@patch("hece.agents.InferenceEngine.ask", autospec=True)
+def test_report_shows_the_best_near_misses_when_nothing_passes(mock_ask, _search, generate_pdf):
+    scores = iter([0.3, 0.5, 0.2, 0.4])  # one AI estimate per attempt, all below the 65% threshold
+
+    def low_scores(self, prompt, temperature=None):
+        if "Return ONLY a valid JSON object" in prompt:
+            return json.dumps({"assumptions": [], "required_conditions": [], "violated_hard_constraints": [],
+                               "citations": [], "ai_viability_score": next(scores)})
+        return fake_llm(self, prompt, temperature)
+
+    mock_ask.side_effect = low_scores
+    run_hece("Smoke", GOAL, 1)  # 1 requested -> 4 attempts, all rejected
+
+    hypotheses, conclusion = generate_pdf.call_args.args[4], generate_pdf.call_args.args[5]
+    assert [h.feasibility_score for h in hypotheses] == [0.5, 0.4, 0.3]
+    assert all(h.status == "rejected" for h in hypotheses)
+    assert conclusion.startswith("0 of 3 hypotheses passed") and "[REJECTED]" in conclusion
+
+
 @patch("hece.main.PaperGenerator.generate_pdf")
 @patch("hece.knowledge.ScientificToolbox.search_arxiv", return_value="LITERATURE: mocked")
 @patch("hece.agents.InferenceEngine.ask", side_effect=InferenceError("Could not reach Ollama."))

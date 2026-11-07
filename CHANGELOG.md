@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.0] - 2026-11-07
 ### Added
 - Inventor mode (discovery engine): explores, recombines and refines mechanisms for a goal, remembers failed attempts, can postulate new physical quantities with SI dimensions, and logs every attempt to `runs/`. Available as `hece-discover`, `python -m hece.discover` and in the Streamlit app (`app.py`, `pip install -e ".[app]"`).
 - Verification layer: law accusations, flaws, citations and numbers reported by the agents are checked in Python before they affect the score; red flags and a deterministic conclusion (no LLM).
@@ -10,6 +10,13 @@
 - Merged the local work with `1.0.0-beta.2`: `InferenceEngine.ask` keeps the optional `temperature` and raises `InferenceError`; the Synthesizer in the refactored orchestrator honours `MAX_RETRIES`.
 - Inventor mode stops cleanly when the local model stops answering: the run ends with the reason recorded, the attempts made so far are kept, and no empty PDF is written.
 - `.hece_cache/` and `runs/` are git-ignored (generated at runtime).
+- When no candidate passes the screening, the classic report shows the best 3 near misses (marked REJECTED, with the reason) instead of an empty "Proposed Hypotheses" section, and the console explains every rejection.
+- A server error while Ollama loads the model (seen on a 6 GB GPU: `unable to allocate CUDA_Host buffer`) is retried once instead of ending the run.
+- `hece --version` and `hece-discover --version`; `hece.__version__`.
+- Documentation updated for 1.0: architecture of both modes, roadmap, Python 3.10+ everywhere.
+
+### Verified
+- Real end-to-end runs with `llama3` (8B) through Ollama on a GTX 1660 SUPER (6 GB), in both modes, with live arXiv retrieval.
 
 ## [1.0.0-beta.2] - 2026-11-05
 ### Fixed

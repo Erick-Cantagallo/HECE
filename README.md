@@ -1,10 +1,11 @@
 <div align="center">
 
-<img src="docs/assets/banner.svg" alt="HECE, the Hypothesis & Creativity Engine. Under construction." width="100%">
+<img src="docs/assets/banner.svg" alt="HECE, the Hypothesis & Creativity Engine. Version 1.0, research prototype." width="100%">
 
 <br>
 
-![Status: under construction](https://img.shields.io/badge/status-under%20construction-facc15?labelColor=1c1917)
+![Version 1.0](https://img.shields.io/badge/version-1.0-4ade80?labelColor=052e16)
+![Status: research prototype](https://img.shields.io/badge/status-research%20prototype-facc15?labelColor=1c1917)
 [![CI](https://github.com/Erick-Cantagallo/HECE/actions/workflows/ci.yml/badge.svg)](https://github.com/Erick-Cantagallo/HECE/actions/workflows/ci.yml)
 ![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-3776AB?logo=python&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/license-MIT-22c55e)
@@ -13,7 +14,7 @@
 
 </div>
 
-> 🚧 **Under construction.** HECE is an ambitious, long-term project and most of it is still ahead. This repository holds an early prototype: expect rough edges, missing pieces and breaking changes, and do not read anything it produces as established science.
+> 🔬 **Version 1.0, research prototype.** HECE runs end to end on a normal PC with a local model: it reads the literature, proposes mechanisms, attacks them, checks the attacks in Python and writes a report. It is a long-term project and a lot is still ahead, so do not read anything it produces as established science.
 
 ## The idea
 
@@ -31,7 +32,7 @@ HECE is not a chatbot, a search engine or an oracle. Sometimes the right outcome
 
 ## Where it is today
 
-The repository contains a first, linear prototype of the investigation pipeline ([architecture](docs/architecture.md)):
+HECE has two modes that share the same building blocks ([architecture](docs/architecture.md)). The **classic investigation** runs this pipeline:
 
 1. **Goal interpretation** (deterministic, no LLM): keywords, domain, complexity and simple constraints (such as "without" and "only") taken from a goal written in English.
 2. **Knowledge**: a few built-in laws for physics and biology, plus real papers fetched from arXiv (RAG).
@@ -40,16 +41,16 @@ The repository contains a first, linear prototype of the investigation pipeline 
 5. **Scoring**: a fixed formula over the violations, flaws and assumptions that the agents reported. Accusations are only counted when Python can verify the quoted text, and only candidates with no verified law violation and at least 65% are kept.
 6. **Report**: a PDF in `reports/`.
 
-On top of that pipeline there is an experimental **inventor mode** ([discovery engine](docs/DISCOVERY_ENGINE.md)): instead of a fixed number of hypotheses, it keeps trying different mechanisms for a goal (explore, recombine unrelated concepts, refine near-misses), remembers what failed and why, and after repeated failures may postulate a new physical quantity, which must declare SI dimensions, an equation and when it reduces to known physics. Every attempt is logged in `runs/`.
+The **inventor mode** ([discovery engine](docs/DISCOVERY_ENGINE.md)): instead of a fixed number of hypotheses, it keeps trying different mechanisms for a goal (explore, recombine unrelated concepts, refine near-misses), remembers what failed and why, and after repeated failures may postulate a new physical quantity, which must declare SI dimensions, an equation and when it reduces to known physics. Every attempt is logged in `runs/`.
 
-**Not there yet**, and the reason this page says "under construction":
+**Not there yet:**
 
 - **A proven creative core.** Inventor mode is a first attempt at the idea above (finding a way around a barrier by creating something new first), but it has not been validated: whether its candidates are any good still depends on the model and needs human review.
 - **Testing hypotheses.** The score does not simulate anything. It counts the problems reported by the agents, so it is only as good as the model behind them.
 - **Laws for other domains.** Only physics and biology have built-in laws, plus a few universal limits (see the [roadmap](ROADMAP.md)).
 - **Any guarantee of scientific correctness.** Treat the output as brainstorming that needs human review.
 
-Known quirk: the PDF uses built-in fonts, so characters outside Latin-1 show up as `?`.
+Known quirk: the PDF uses built-in fonts. Greek letters, superscripts and typographic quotes are transliterated (`μ`, `m^2`, `'`), but other characters outside Latin-1 still show up as `?`.
 
 ## Try it
 

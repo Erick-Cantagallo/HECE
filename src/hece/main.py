@@ -5,6 +5,7 @@ from typing import Optional, Sequence
 
 from dotenv import load_dotenv
 
+from hece import __version__
 from hece.interpreter import GoalInterpreter
 from hece.knowledge import KnowledgeEngine
 from hece.constraints import ConstraintEngine
@@ -18,6 +19,7 @@ load_dotenv()
 
 DEFAULT_PROJECT = "Investigation"
 DEFAULT_HYPOTHESES = 2
+NEAR_MISSES_SHOWN = 3
 
 def run_hece(project_name: str, goal_description: str, target_count: int):
     print(f"\n🧠 HECE ENGINE INITIALIZED - PROJECT: {project_name.upper()}")
@@ -50,6 +52,7 @@ def run_hece(project_name: str, goal_description: str, target_count: int):
     
     # --- MONTE CARLO (REJECTION SAMPLING) LOOP ---
     evaluated_hypotheses = []
+    rejected_hypotheses = []  # kept so the report can still show the best near misses
     attempts = 0
     # Safeguard against infinite loops: we allow 4 attempts per requested hypothesis
     max_attempts = target_count * 4 
@@ -75,21 +78,20 @@ def run_hece(project_name: str, goal_description: str, target_count: int):
         
         print(f"   📊 [Simulation] Score: {score:.0f}% | Broken Laws: {broken_laws}")
         
-        # 3. Apply Rejection Sampling rules
-        if broken_laws > 0:
-            print("   ❌ [REJECTED]: Hypothesis violates fundamental physical laws.")
+        # 3. Apply Rejection Sampling rules (the SimulationEngine already set the status)
+        if candidate.status != "active":
+            print(f"   ❌ [REJECTED]: {simulation_engine.rejection_reason(candidate)}")
+            rejected_hypotheses.append(candidate)
             continue
-            
-        if score < 65:
-            print(f"   ❌ [REJECTED]: Viability ({score:.0f}%) is below the 65% minimum threshold.")
-            continue
-            
+
         # 4. If it survives the filters, add it to the final valid list
         print("   ✅ [ACCEPTED]: Hypothesis passed all strict viability thresholds!")
         evaluated_hypotheses.append(candidate)
 
     if not evaluated_hypotheses:
         print("\n[!] CRITICAL WARNING: Monte Carlo pipeline failed to find any viable hypotheses within the iteration limits.")
+        # Show the best near misses (clearly marked REJECTED, with the reason) instead of an empty report.
+        evaluated_hypotheses = sorted(rejected_hypotheses, key=lambda h: h.feasibility_score, reverse=True)[:NEAR_MISSES_SHOWN]
 
     print("\n[+] EVALUATION RESULTS:")
     for i, hyp in enumerate(evaluated_hypotheses, 1):
@@ -117,6 +119,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("goal", nargs="?", help="scientific goal to investigate (omit it to answer the prompts interactively)")
     parser.add_argument("-p", "--project", help=f"project name used in the PDF (default: {DEFAULT_PROJECT})")
     parser.add_argument("-n", "--hypotheses", type=int, help=f"how many hypotheses to generate (default: {DEFAULT_HYPOTHESES})")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     return parser
 
 def _ask_hypothesis_count() -> int:

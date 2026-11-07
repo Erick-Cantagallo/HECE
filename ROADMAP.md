@@ -25,6 +25,18 @@
 - Documented calculation methodology explicitly in the final PDF.
 - Enforced deep paragraph generation and plain-text math rendering, along with LaTeX sanitization in FPDF2.
 
-## [Planned] Sprint 11: User Interface (UI/UX)
-- Option A: Streamlit Web UI for browser-based investigations.
-- Option B: Rich CLI Terminal Interface for a cyberpunk laboratory feel.
+## [Done] Sprint 11: Verification & User Interface
+- Python checks every claim that affects a score: law accusations need a real quote, invented citations are dropped, unit conversions are recomputed and known pseudo-science patterns are flagged.
+- Rejection sampling in the classic pipeline and a deterministic conclusion (no LLM).
+- Streamlit web interface (`streamlit run app.py`) for both modes.
+
+## [Done] Sprint 12: Inventor Mode (v1.0)
+- Discovery engine: explore, recombine, refine and postulate strategies, with an archive of every attempt and the reason it failed.
+- Postulated quantities must declare SI dimensions, an equation, a magnitude and when they reduce to known physics.
+- Real end-to-end runs with a local model; installable package with `hece` and `hece-discover` commands; CI on Python 3.10 to 3.13.
+
+## [Planned] Next
+- Built-in laws for more domains (chemistry, materials, medicine).
+- Benchmark goals with known answers, to measure whether the screening keeps good ideas and rejects bad ones.
+- Better literature relevance (the arXiv query is built from three keywords only).
+- Unicode font in the PDF.
