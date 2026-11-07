@@ -19,9 +19,10 @@ def test_penalties_applied():
     h = _hyp(assumptions=["a"], logical_flaws=["f"])
     assert SimulationEngine().calculate_viability(h) == 0.7  # 0.9 - 0.15 - 0.05
 
-def test_unverified_accusation_is_penalized_not_zeroed():
+def test_unverified_accusation_does_not_change_the_score():
+    # The model's unproven opinion is shown (and sends the hypothesis to human review) but is not scored
     h = _hyp(unverified_violations=["Pauli exclusion principle"])
-    assert SimulationEngine().calculate_viability(h) == 0.8  # 0.9 - 0.10
+    assert SimulationEngine().calculate_viability(h) == 0.9
 
 def test_rejection_reasons():
     e = SimulationEngine()

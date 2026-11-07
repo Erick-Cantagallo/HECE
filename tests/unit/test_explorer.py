@@ -297,7 +297,7 @@ def test_judges_run_cold_and_the_inventor_runs_hot():
 
 
 def test_a_critic_that_accuses_every_law_does_not_set_the_score():
-    result, llm, _ = run_engine([make_cand(0.8, "alpha pumping", 1)], taint=True, max_iterations=1)
+    result, llm, _ = run_engine([make_cand(0.8, "alpha pumping", 1)], taint=True, max_iterations=1, confirmations=0)
     hyp = result.attempts[0].hypothesis
     assert hyp.ai_estimate == 0.8                           # recomputed from the hypothesis, not from the accusations
     assert len(hyp.unverified_violations) == 3 and hyp.needs_human_review
@@ -310,7 +310,7 @@ def test_flaws_that_cite_a_law_become_accusations_not_flaws():
     hyp = result.attempts[0].hypothesis
     assert hyp.logical_flaws == []
     assert len(hyp.unverified_violations) == 1 and "law cited in the flaw review" in hyp.unverified_violations[0]
-    assert hyp.needs_human_review and hyp.feasibility_score == 0.7    # 0.8 - 0.10 (accusation, not 0.15 flaw)
+    assert hyp.needs_human_review and hyp.feasibility_score == 0.8    # an unverified accusation is shown, not scored
 
 
 REQS = ("REQUIREMENT: Sustain a negative energy density of at least 1e-6 J per cubic metre in a one cubic centimetre volume\n"

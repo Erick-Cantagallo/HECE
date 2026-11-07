@@ -33,7 +33,7 @@ flowchart TD
 | Knowledge Engine | `knowledge.py`, `tools.py` | `KnowledgeContext` (domain laws, arXiv literature with a local cache, limitations) |
 | Constraint Engine | `constraints.py` | `ConstraintContext` (hard constraints, soft constraints, criteria) |
 | Agent Pool + Orchestrator | `agents.py`, `inference.py` | `Hypothesis`: Expert proposes, Critic checks laws and internal flaws, Synthesizer extracts JSON (auto-retry, `MAX_RETRIES`) |
-| Verification | `verification.py`, `redflags.py`, `numerics.py` | only accusations with a real quote count; invented citations are dropped; known pseudo-science patterns and wrong unit conversions are flagged |
+| Verification | `verification.py`, `redflags.py`, `numerics.py`, `lawchecks.py` | only accusations with a real quote count; invented citations are dropped; known pseudo-science patterns and wrong unit conversions are flagged; efficiencies above the Carnot limit are verified violations; law-level red flags block acceptance |
 | Simulation Engine | `simulation.py` | feasibility score and status (formula printed in every PDF) |
 | Conclusion | `conclusion.py` | plain-text summary built without any LLM call, so it cannot endorse anything |
 | Paper Generator | `paper.py` | PDF report |
@@ -62,10 +62,15 @@ flowchart TD
 | Concept bank for recombination | `concepts.py` |
 | Entry point shared by the CLI and the app | `pipeline.py`, `discover.py` |
 
+## Measuring the screening
+
+`hece-benchmark` scores fixed hypotheses whose verdict is known (`benchmarks/screening.json`) and reports how many sound ones were accepted and how many law-breaking ones slipped through. Run it after any change to the scoring, the prompts or the red flags.
+
 ## Interfaces
 
 - `hece` / `python -m hece`: classic investigation, interactive or one-shot.
 - `hece-discover` / `python -m hece.discover`: inventor mode.
+- `hece-benchmark`: screening benchmark.
 - `streamlit run app.py`: web interface for both modes (`pip install -e ".[app]"`).
 
 ## Local inference and failures
